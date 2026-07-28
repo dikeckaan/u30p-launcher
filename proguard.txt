@@ -1,0 +1,11 @@
+-dontobfuscate
+-dontwarn kotlin.**
+-dontwarn org.jetbrains.annotations.**
+-dontwarn javax.annotation.**
+
+-keep class com.kaandikec.u30plauncher.LauncherActivity { *; }
+-keep class com.kaandikec.u30plauncher.CfgReceiver { *; }
+
+# TelephonyCallback arayuzleri yansimayla cozulur
+-keep class * extends android.telephony.TelephonyCallback { *; }
+-keep interface android.telephony.TelephonyCallback$* { *; }
