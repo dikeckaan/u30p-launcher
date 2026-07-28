@@ -18,7 +18,12 @@ case "${1:-help}" in
     ./build.sh
     adbd install -r build/u30p-launcher.apk | tail -1
     adbd shell pm grant $PKG android.permission.READ_PHONE_STATE || true
+    adbd shell pm grant $PKG android.permission.ACCESS_COARSE_LOCATION || true
     adbd shell pm grant $PKG android.permission.ACCESS_FINE_LOCATION || true
+    # Magisk su politikasi: 2 = izin ver. Dialog cihazda elle onaylanmasin diye.
+    uid=$(adbd shell "pm list packages -U | grep -m1 $PKG" | sed 's/.*uid://' | tr -d '\r')
+    [ -n "$uid" ] && adbd shell "su -c 'magisk --sqlite \"REPLACE INTO policies \
+(uid,policy,until,logging,notification) VALUES($uid,2,0,1,0)\"'" >/dev/null || true
     ;;
 
   start)

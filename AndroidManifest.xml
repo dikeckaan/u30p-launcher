@@ -5,6 +5,10 @@
     <uses-sdk android:minSdkVersion="33" android:targetSdkVersion="35" />
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Hucre kimligi (PCI/EARFCN/TAC/CI) icin konum izni sart; ayrica cihazda
+         konum servisinin acik olmasi gerekir, aksi halde Android ServiceState'i
+         maskeler. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
