@@ -46,6 +46,14 @@ case "${1:-help}" in
     "$0" install && "$0" start && sleep 2 && "$0" shot "${2:-shot}"
     ;;
 
+  cfg)
+    # Android 8+ implicit broadcast'ler manifest receiver'i uyandirmaz;
+    # bileseni acikca vermek sart.
+    shift
+    adbd shell am broadcast -n "$PKG/.CfgReceiver" \
+      -a com.kaandikec.u30plauncher.CFG "$@" | tail -1
+    ;;
+
   top)
     adbd shell dumpsys activity activities | grep -m1 topResumedActivity
     ;;

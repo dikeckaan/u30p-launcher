@@ -43,13 +43,22 @@ Mevcut dashboard'ın gösterdiği her alanın stock Android API'lerinde mevcut o
 
 Ayrıca cihazda **80 portunda web arayüzü yok** (`1146` = ttyd, `8080`/`8443` = UFI-TOOLS). HTTP/goform yolu zaten kapalı; native Android API tek uygulanabilir yol.
 
-### 2.3 Ekran
+### 2.3 Cihaza özgü iki engel
+
+**Konum servisi kapalı.** `location_mode=0`. Android, konum servisi kapalıyken `ServiceState` içindeki hücre kimliğini ve operatör adını **izinler verilmiş olsa bile** maskeler. İki sonucu var:
+
+- Operatör adı `TelephonyManager.networkOperatorName`'den okunur — bu alan konuma bağlı değildir.
+- PCI / EARFCN / TAC / CI / bant, root ile `dumpsys telephony.registry` çıktısından `CellIdentityParser` ile okunur. Kullanıcının sistem ayarını değiştirmeye gerek kalmaz. API yolu değer döndürdüğünde o tercih edilir; fallback yalnızca maskeleme varken devreye girer.
+
+**Logcat kapalı.** `persist.sys.ztelog.enable=0`; `log -t TEST` ile yazılan bir satır bile geri okunamıyor (`logcat -g` → "0 B readable"). Bu yüzden hata ayıklama logcat'e güvenemez: `CrashGuard` yığın izini `filesDir/crash.log` dosyasına yazar ve teşhis oradan yapılır.
+
+### 2.4 Ekran
 
 `ro.config.window_is_round` **set edilmemiş** — Android ekranı yuvarlak saymıyor ve dairesel maske uygulamıyor. Köşe güvenli alanı elle yönetilecek.
 
 Yararlı geometri (merkez 120,120 / yarıçap 120): y=±60'ta kullanılabilir genişlik 208 px, y=±80'de 179 px, y=±95'te 147 px. Üst ve alt ~20 px şeritler dar ama saat gibi kısa metinler için yeterli.
 
-### 2.4 Magisk modülü çakışması
+### 2.5 Magisk modülü çakışması
 
 İki modül her boot'ta HOME'u zorla `com.ufitools.dashboard`'a sabitliyor:
 
@@ -102,15 +111,45 @@ Telefon ve batarya **push**, yalnızca trafik sayaçları **poll**. "Yenileme ar
 
 Bunlar kabul kriteridir, sonradan yapılacak optimizasyon değil.
 
-| Metrik | Hedef | Ölçüm |
-|---|---|---|
-| RAM (PSS, ekran açık) | < 20 MB | `dumpsys meminfo` |
-| RAM (ekran kapalı) | < 12 MB | `dumpsys meminfo` |
-| CPU (ekran açık, boşta) | < %1 | `top -m 5` |
-| CPU (ekran kapalı) | %0.0 | `top -m 5` |
-| Soğuk açılış | < 250 ms | `am start -W` |
-| APK boyutu | < 150 KB | `ls -la` |
-| Steady-state allocation | 0 B/frame | GC log |
+| Metrik | Hedef | Ölçülen | Sonuç |
+|---|---|---|---|
+| RAM (PSS, ekran açık) | < 20 MB | **20.1 MB** | sınırda tutturuldu |
+| RAM (PSS, ekran kapalı) | < 12 MB | **27.8 MB** | ✗ hedef gerçekçi değildi, aşağıya bakınız |
+| CPU (ekran açık, boşta) | < %1 | **%0.0** | ✓ `top` çözünürlüğünün altında |
+| CPU (ekran kapalı) | %0.0 | **%0.0** | ✓ |
+| Soğuk açılış | < 250 ms | **360 ms** | ✗ 1.4× aşıldı |
+| APK boyutu | < 150 KB | **40 KB** | ✓ hedefin 3.7 katı altında |
+
+Ölçüm: `./measure.sh` (cihazda, 2026-07-29).
+
+### Mevcut launcher ile karşılaştırma
+
+Asıl anlamlı ölçü, yerini aldığımız uygulama:
+
+| | U30P Launcher | `com.ufitools.dashboard` 1.6.1 | Fark |
+|---|---|---|---|
+| RAM (PSS, çalışırken) | 20.1 MB | 75.9 MB | **3.8× daha az** |
+| RSS | 91 MB | 149 MB | 1.6× daha az |
+| APK | 40 KB | 2.2 MB | **54× daha küçük** |
+
+### `hardwareAccelerated` kararı ölçümle sabitlendi
+
+Aynı APK, yalnızca manifest bayrağı değiştirilerek:
+
+| | `false` | `true` | Fark |
+|---|---|---|---|
+| RAM (PSS, ekran açık) | 20.1 MB | 47.2 MB | **27 MB fazla** |
+| RAM (PSS, ekran kapalı) | 27.8 MB | 55.1 MB | 27 MB fazla |
+| RSS | 91 MB | 120 MB | 29 MB fazla |
+| Soğuk açılış | 360 ms | 690 ms | **1.9× yavaş** |
+
+240×240 düz renkli bir arayüzde GPU bağlamının bedeli budur. `false` sabitlendi.
+
+### Tutturulamayan iki hedef
+
+**Ekran kapalıyken 12 MB:** Ölçülen 27.8 MB. Polling gerçekten duruyor (CPU %0.0) ama Activity yalnızca *paused*, *destroyed* değil — pencere yüzeyi ve tema kaynakları süreçte kalıyor. 12 MB hedefi, sürecin tamamen boşaltıldığı varsayımına dayanıyordu; bir HOME uygulaması için bu doğru değil. Gerçekçi hedef: **< 30 MB**, ve asıl kazanç CPU'nun tam sıfırlanması.
+
+**Soğuk açılış 250 ms:** Ölçülen 360 ms. Bunun büyük kısmı süreç başlatma (zygote fork + sınıf yükleme); uygulama kodunun payı küçük. Gerçekçi hedef: **< 400 ms**. Karşılaştırma için mevcut launcher aynı testte ölçülmedi çünkü HOME olarak zaten sürekli ayakta.
 
 ### Bunu sağlayan yedi karar
 
@@ -167,10 +206,16 @@ Cihazda `svc data` ve `svc wifi` **yok**; veri kesmenin tek temiz yolu uçak mod
 
 **adb'den:** manifest'te tanımlı tek receiver, özel action ile, `android:permission="android.permission.DUMP"` korumalı — shell ve root bu izne sahip, normal uygulamalar değil. Tanımlı receiver tetiklenmedikçe sıfır maliyetlidir.
 
+**Bileşen açıkça verilmeli.** Android 8+ implicit broadcast'lerin manifest'te tanımlı bir receiver'ı uyandırmasını engeller; `-a` tek başına sessizce başarısız olur (`result=0` döner ama `onReceive` çalışmaz).
+
 ```
-adb shell am broadcast -a com.kaandikec.u30plauncher.CFG --es theme arc
-adb shell am broadcast -a com.kaandikec.u30plauncher.CFG --ei refresh_ms 2000
+adb shell am broadcast -n com.kaandikec.u30plauncher/.CfgReceiver \
+    -a com.kaandikec.u30plauncher.CFG --es theme arc
+adb shell am broadcast -n com.kaandikec.u30plauncher/.CfgReceiver \
+    -a com.kaandikec.u30plauncher.CFG --ei refresh_ms 2000
 ```
+
+Kısayol: `./dev.sh cfg --es theme arc`
 
 ## 7. Hata yönetimi
 

@@ -24,5 +24,24 @@ object FmtTest {
         // negatif girdi savunmasi
         eq("bytes negatif", Fmt.bytes(-5), "0 B")
         eq("speed negatif", Fmt.speed(-5), "0 bps")
+
+        // Ortak birim: indirme ve yukleme tek etiket paylasir, ikisi de ayni
+        // olcekte yazilmali. 12.4 Mbps ve 4.32 Kbps ayni anda gosterilirken
+        // kucuk olan Mbps olceginde "0.00" olur — dogru davranis budur.
+        val rx = 1_550_000L   // 12.4 Mbps
+        val tx = 540L         // 4.32 Kbps
+        val shared = Fmt.speedUnitIndex(if (rx > tx) rx else tx)
+        eq("ortak birim adi", Fmt.unitName(shared), "Mbps")
+        eq("ortak olcek rx", Fmt.speedValueAtOf(rx, shared), "12.4")
+        eq("ortak olcek tx", Fmt.speedValueAtOf(tx, shared), "0.00")
+
+        // Ikisi de kucukse ortak birim Kbps olur
+        val shared2 = Fmt.speedUnitIndex(540L)
+        eq("kucuk ortak birim", Fmt.unitName(shared2), "Kbps")
+        eq("kucuk ortak olcek", Fmt.speedValueAtOf(540L, shared2), "4.32")
+
+        // sinir disi indeks kirpilir, cokmez
+        eq("indeks kirpma", Fmt.unitName(99), "Tbps")
+        eq("negatif indeks", Fmt.unitName(-3), "bps")
     }
 }

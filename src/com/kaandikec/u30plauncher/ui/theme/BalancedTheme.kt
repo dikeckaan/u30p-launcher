@@ -59,17 +59,20 @@ object BalancedTheme : Theme {
 
         Geom.hairline(c, 88f, 74f, hair)
 
+        // Iki hiz tek birim etiketi paylasir; ikisi de buyugun olceginde yazilir
+        val unitIdx = Fmt.speedUnitIndex(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed)
+
         sb.setLength(0)
-        Fmt.appendSpeedValue(sb, s.rxSpeed)
+        Fmt.appendSpeedValueAt(sb, s.rxSpeed, unitIdx)
         var w = Geom.textWidth(sb, down)
         var x = Geom.CX - (w + 20f) / 2f
         Geom.arrow(c, x + 7f, 110f, 16f, true, downFill)
         Geom.textAt(c, sb, x + 20f, 98f, down)
 
         sb.setLength(0)
-        Fmt.appendSpeedValue(sb, s.txSpeed)
+        Fmt.appendSpeedValueAt(sb, s.txSpeed, unitIdx)
         sb.append("  ")
-        sb.append(Fmt.speedUnit(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed))
+        sb.append(Fmt.unitName(unitIdx))
         w = Geom.textWidth(sb, up)
         x = Geom.CX - (w + 14f) / 2f
         Geom.arrow(c, x + 5f, 141f, 11f, false, upFill)

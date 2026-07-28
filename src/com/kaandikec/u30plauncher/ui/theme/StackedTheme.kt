@@ -49,19 +49,23 @@ object StackedTheme : Theme {
         Geom.signalBars(c, x0, 72f, s.signalLevel, barOn, barOff)
         Geom.textAt(c, sb, x0 + Geom.BARS_W + 8f, 74f, meta)
 
-        drawSpeed(c, sb, 100f, s.rxSpeed, down, true)
-        drawSpeed(c, sb, 144f, s.txSpeed, up, false)
+        // Iki hiz tek birim etiketi paylasir; ikisi de buyugun olceginde yazilir
+        val unitIdx = Fmt.speedUnitIndex(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed)
+        drawSpeed(c, sb, 100f, s.rxSpeed, unitIdx, down, true)
+        drawSpeed(c, sb, 144f, s.txSpeed, unitIdx, up, false)
 
         sb.setLength(0)
-        sb.append(Fmt.speedUnit(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed))
+        sb.append(Fmt.unitName(unitIdx))
         Geom.centerText(c, sb, 184f, unit)
 
         drawBottomStrip(c, s, sb)
     }
 
-    private fun drawSpeed(c: Canvas, sb: StringBuilder, y: Float, v: Long, p: Paint, isDown: Boolean) {
+    private fun drawSpeed(
+        c: Canvas, sb: StringBuilder, y: Float, v: Long, unitIdx: Int, p: Paint, isDown: Boolean
+    ) {
         sb.setLength(0)
-        Fmt.appendSpeedValue(sb, v)
+        Fmt.appendSpeedValueAt(sb, v, unitIdx)
         val w = Geom.textWidth(sb, p)
         val x = Geom.CX - (w + 22f) / 2f
         Geom.arrow(c, x + 8f, y + 14f, 20f, isDown, p)
