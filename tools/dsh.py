@@ -4,12 +4,15 @@
 Fallback channel for when adb-over-wifi is down.
 """
 import json
+import os
 import sys
 import time
 
 import ttyd
 
-PASSWORD = "admin"
+# Cihazin ttyd kabugu parola sorar. Repoya gomulmemesi icin ortamdan okunur;
+# varsayilan UFI-TOOLS kurulum degeridir.
+PASSWORD = os.environ.get("U30P_SHELL_PASSWORD", "admin")
 BEGIN = "__DSH_B__"
 END = "__DSH_E__"
 
