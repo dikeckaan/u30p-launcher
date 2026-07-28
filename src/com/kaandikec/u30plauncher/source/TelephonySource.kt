@@ -64,8 +64,9 @@ class TelephonySource(ctx: Context) {
                     val s = lte[0]
                     rsrp = sane(s.rsrp)
                     rsrq = sane(s.rsrq)
-                    // rssnr zaten ondabir dB birimindedir
-                    sinr = sane(s.rssnr)
+                    // getRssnr() tam sayi dB dondurur; Snapshot ondabir tutar
+                    val snr = sane(s.rssnr)
+                    sinr = if (snr == Snapshot.UNKNOWN) snr else snr * 10
                     level = s.level
                 } else {
                     val nr = ss.getCellSignalStrengths(CellSignalStrengthNr::class.java)

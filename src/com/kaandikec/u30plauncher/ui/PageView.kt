@@ -40,5 +40,14 @@ abstract class PageView(ctx: Context) : View(ctx) {
 
     protected open val showDots: Boolean get() = true
 
+    /**
+     * Ham dokunma olaylarina ihtiyac duyan sayfalar (aksiyon, ayar) bunu true
+     * yapar; Pager olaylari `onRawTouch` ile iletir.
+     */
+    open val wantsRawTouch: Boolean get() = false
+
+    /** Pager tarafindan iletilen ham dokunma. Varsayilan: yok say. */
+    open fun onRawTouch(event: android.view.MotionEvent) {}
+
     protected abstract fun draw(c: Canvas, s: Snapshot)
 }

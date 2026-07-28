@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import com.kaandikec.u30plauncher.core.CellIdentity
+import com.kaandikec.u30plauncher.core.CellIdentityParser
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.core.UsageCalc
 import com.kaandikec.u30plauncher.source.BatterySource
@@ -25,8 +27,8 @@ import java.util.Calendar
  */
 class DataHub(ctx: Context) {
     companion object {
-        /** ARP tablosu saniyede bir degismez; istemci sayisi seyrek okunur. */
-        private const val CLIENTS_INTERVAL_MS = 5000L
+        /** ARP tablosu ve hucre kimligi saniyede bir degismez; seyrek okunur. */
+        private const val SLOW_INTERVAL_MS = 5000L
     }
 
     private val prefs = Prefs(ctx)
@@ -44,9 +46,17 @@ class DataHub(ctx: Context) {
     private var listener: ((Snapshot) -> Unit)? = null
     private var running = false
     private var clientsCached = -1
-    private var lastClientsAt = 0L
+    private var lastSlowAt = 0L
     private var rootChecked = false
     private var rootOk = false
+
+    /**
+     * Konum servisi kapaliyken Android hucre kimligini maskeler. Root varsa
+     * ayni veriyi dumpsys'ten okuruz; boylece kullanicinin sistem ayarini
+     * degistirmemiz gerekmez.
+     */
+    private val cell = CellIdentity()
+    private var cellFromRoot = false
 
     var snapshot: Snapshot = Snapshot.EMPTY
         private set
@@ -55,7 +65,7 @@ class DataHub(ctx: Context) {
         override fun run() {
             if (!running) return
             net.sample(System.currentTimeMillis())
-            refreshClientsIfDue()
+            refreshSlowIfDue()
             rebuild()
             handler.postDelayed(this, prefs.refreshMs.toLong())
         }
@@ -81,22 +91,40 @@ class DataHub(ctx: Context) {
         listener = null
     }
 
-    private fun refreshClientsIfDue() {
+    /** Root gerektiren, yavas degisen alanlar; 5 sn'de bir okunur. */
+    private fun refreshSlowIfDue() {
         val now = SystemClock.elapsedRealtime()
-        if (rootChecked && now - lastClientsAt < CLIENTS_INTERVAL_MS) return
-        lastClientsAt = now
+        if (rootChecked && now - lastSlowAt < SLOW_INTERVAL_MS) return
+        lastSlowAt = now
+
         if (!rootChecked) {
             rootOk = RootShell.isAvailable()
             rootChecked = true
         }
         if (!rootOk) {
             clientsCached = -1
+            cellFromRoot = false
             return
         }
-        // ARP tablosunda br0 (LAN kopru) uzerindeki tamamlanmis girdiler
-        val out = RootShell.exec("grep -c ' br0\$' /proc/net/arp")
-        clientsCached = out?.trim()?.toIntOrNull() ?: -1
+
+        // ARP tablosunda br0 (LAN kopru) uzerindeki girdiler
+        clientsCached = RootShell.exec("grep -c ' br0\$' /proc/net/arp")?.trim()?.toIntOrNull() ?: -1
+
+        // Hucre kimligi yalnizca API yolundan gelmiyorsa dumpsys'e bas
+        if (telephony.pci == Snapshot.UNKNOWN && telephony.ci == Snapshot.UNKNOWN) {
+            val dump = RootShell.exec(
+                "dumpsys telephony.registry 2>/dev/null | grep -m1 -o 'CellIdentityLte:{[^}]*}'"
+            )
+            cellFromRoot = dump != null && CellIdentityParser.parse(dump, cell)
+        } else {
+            cellFromRoot = false
+        }
     }
+
+    private fun pickCell(apiValue: Int, rootValue: Int): Int =
+        if (apiValue != Snapshot.UNKNOWN) apiValue
+        else if (cellFromRoot) rootValue
+        else Snapshot.UNKNOWN
 
     private fun stampCalendar() {
         cal.timeInMillis = System.currentTimeMillis()
@@ -117,16 +145,16 @@ class DataHub(ctx: Context) {
         val next = Snapshot(
             operator = telephony.operator,
             netType = telephony.netType,
-            band = telephony.band,
+            band = pickCell(telephony.band, cell.band),
             hasService = telephony.hasService,
             rsrp = telephony.rsrp,
             rsrq = telephony.rsrq,
             sinr = telephony.sinr,
-            pci = telephony.pci,
-            earfcn = telephony.earfcn,
-            tac = telephony.tac,
-            ci = telephony.ci,
-            bandwidthKhz = telephony.bandwidthKhz,
+            pci = pickCell(telephony.pci, cell.pci),
+            earfcn = pickCell(telephony.earfcn, cell.earfcn),
+            tac = pickCell(telephony.tac, cell.tac),
+            ci = pickCell(telephony.ci, cell.ci),
+            bandwidthKhz = pickCell(telephony.bandwidthKhz, cell.bandwidthKhz),
             signalLevel = telephony.level,
             rxSpeed = net.rxSpeed,
             txSpeed = net.txSpeed,

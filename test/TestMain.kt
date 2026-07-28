@@ -7,5 +7,6 @@ fun main() {
     ProcNetParserTest.run()
     UsageCalcTest.run()
     SnapshotTest.run()
+    CellIdentityParserTest.run()
     exitProcess(TestSupport.report())
 }
