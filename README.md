@@ -19,7 +19,10 @@ Yerini aldığı `com.ufitools.dashboard` ile karşılaştırma (cihazda ölçü
 2. **Detay** — bugün ve bu ay trafik, istemci sayısı, VPN, SoC ve pil sıcaklığı
 3. **Mühendislik** — bant, bant genişliği, RSRP/RSRQ/SINR/PCI/EARFCN/TAC/CI
 
-**Uzun bas (600 ms)** → kilit açılır: `Aksiyonlar ↔ Ayarlar`. 30 sn hareketsizlikte kendiliğinden kilitlenir.
+**Uzun bas (600 ms)** → kilit açılır: `Aksiyonlar ↔ Uygulamalar ↔ WiFi ↔ Ayarlar`. 30 sn hareketsizlikte kendiliğinden kilitlenir.
+
+- **Uygulamalar** — kurulu uygulamalar, ikonlarıyla, kaydırmalı
+- **WiFi** — SSID, parola ve bağlı istemcilerin IP'leri
 
 Yeniden başlat ve veri kes, kilit açıkken bile **1 sn basılı tutma** ister; dış kenarda dolan halka geri bildirim verir, parmak kalkınca iptal olur.
 
@@ -34,9 +37,11 @@ Gradle ve AGP kullanılmaz. Gerekenler: Android SDK build-tools 35.0.1, `android
 ./run-tests.sh      # JVM birim testleri (cihaz gerekmez)
 ```
 
-## Cihaza kurma
+## Durum
 
-Faz 1: HOME'a **dokunulmaz**, uygulama normal bir uygulama gibi açılır. Geri dönüş HOME tuşudur.
+**Varsayılan HOME olarak kurulu ve çalışıyor.** adb, `wireless-adb-keeper` modülü nedeniyle **55555** portunda.
+
+## Cihaza kurma
 
 ```bash
 ./dev.sh install    # derler, kurar, izinleri ve Magisk su politikasını verir
@@ -46,7 +51,22 @@ Faz 1: HOME'a **dokunulmaz**, uygulama normal bir uygulama gibi açılır. Geri 
 ./measure.sh        # performans bütçesini ölçer
 ```
 
-Kalıcı hale getirme (launcher kanıtlandıktan sonra) `docs/superpowers/specs/…-design.md` §8'de.
+### Geri dönüş
+
+```bash
+# Eski launcher'a dön
+adb -s 192.168.0.1:55555 shell cmd package set-home-activity \
+    com.ufitools.dashboard/.LauncherActivity
+# Keyguard'i geri ac
+adb -s 192.168.0.1:55555 shell su -c 'locksettings set-disabled false'
+# Magisk modulunu geri al
+adb -s 192.168.0.1:55555 shell su -c \
+    'cp /data/adb/modules/ufi_default_launcher/service.sh.bak \
+        /data/adb/modules/ufi_default_launcher/service.sh'
+rm /data/adb/modules/force-u30pro-launcher/disable   # cihazda, root ile
+```
+
+Band tuşuna **1 kez** basmak launcher'lar arasında geçiş yapar: yeni → UFI dashboard → ZTE stock → yeni. Bu, ekran hiç açılmasa bile çalışan fiziksel geri dönüş yoludur.
 
 ## Cihaza özgü iki tuzak
 
