@@ -70,9 +70,19 @@ class LauncherActivity : Activity() {
         locked = true
     }
 
-    /** Kilit acikken geri tusu kilidi kapatir, uygulamadan cikmaz. */
+    /**
+     * HOME uygulamasi geri tusuyla kapanmamalidir — kapanirsa cihazda gosterilecek
+     * baska bir sey kalmaz. Geri yalnizca kilidi kapatir.
+     */
     override fun onBackPressed() {
-        if (!locked) lock() else super.onBackPressed()
+        if (!locked) lock() else pager.index = 0
+    }
+
+    /** HOME tusuna basildiginda basa don ve kilitle. */
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        lock()
+        pager.index = 0
     }
 
     private fun themeFor(id: Int): Theme = when (id) {

@@ -1,0 +1,29 @@
+#!/system/bin/sh
+# U30Pro Force Launcher to Front at Boot - Service Script
+# Runs at boot (late_start)
+
+# 1. Wait for Android system boot completion
+until [ "$(getprop sys.boot_completed)" = "1" ]; do
+    sleep 2
+done
+
+# Wait extra 3 seconds for package manager and window manager to settle
+sleep 3
+
+# 2. Disable Stock OEM Launcher (prevents stock login dialog / lock screen from taking over)
+pm disable-user --user 0 com.zte.mifavor.ufi.home 2>/dev/null || true
+pm disable com.zte.mifavor.ufi.home 2>/dev/null || true
+
+# 3. Set UFI-Tools Dashboard as Default System Launcher
+cmd package set-home-activity com.ufitools.dashboard/.LauncherActivity 2>/dev/null || true
+cmd package set-home-activity com.ufitools.dashboard/com.ufitools.dashboard.LauncherActivity 2>/dev/null || true
+
+# 4. Force launcher to the front repeatedly during initial boot phase (10 iterations x 3s = 30 seconds)
+# Ensures that even if another app tries to pop up on boot, UFI Dashboard stays in front
+for i in $(seq 1 10); do
+    am start -n com.ufitools.dashboard/.LauncherActivity 2>/dev/null || true
+    am start -a android.intent.action.MAIN -c android.intent.category.HOME 2>/dev/null || true
+    sleep 3
+done
+
+exit 0
