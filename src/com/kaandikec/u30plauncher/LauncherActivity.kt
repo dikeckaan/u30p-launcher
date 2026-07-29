@@ -6,6 +6,8 @@ import android.os.Handler
 import android.os.Looper
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.ActionsPage
+import com.kaandikec.u30plauncher.ui.AppsPage
+import com.kaandikec.u30plauncher.ui.WifiPage
 import com.kaandikec.u30plauncher.ui.DetailPage
 import com.kaandikec.u30plauncher.ui.EngineeringPage
 import com.kaandikec.u30plauncher.ui.PageView
@@ -27,6 +29,8 @@ class LauncherActivity : Activity() {
     private lateinit var hub: DataHub
     private lateinit var pager: Pager
     private lateinit var actionsPage: ActionsPage
+    private lateinit var appsPage: AppsPage
+    private lateinit var wifiPage: WifiPage
     private lateinit var settingsPage: SettingsPage
 
     private val relockHandler = Handler(Looper.getMainLooper())
@@ -41,6 +45,8 @@ class LauncherActivity : Activity() {
         hub = DataHub(this)
 
         actionsPage = ActionsPage(this)
+        appsPage = AppsPage(this)
+        wifiPage = WifiPage(this)
         settingsPage = SettingsPage(this, prefs) { onSettingsChanged() }
 
         pager = Pager(this)
@@ -88,7 +94,10 @@ class LauncherActivity : Activity() {
         locked = false
         // Kilit acikken uzun basma aksiyon sayfasinin isi; kilidi tekrar acmaz.
         pager.longPressEnabled = false
-        pager.setPages(listOf(actionsPage, settingsPage))
+        pager.setPages(listOf(actionsPage, appsPage, wifiPage, settingsPage))
+        appsPage.ensureLoaded()
+        wifiPage.update(hub.snapshot)
+        wifiPage.refreshState()
         actionsPage.update(hub.snapshot)
         actionsPage.refreshState()
         scheduleRelock()

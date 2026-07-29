@@ -8,5 +8,6 @@ fun main() {
     UsageCalcTest.run()
     SnapshotTest.run()
     CellIdentityParserTest.run()
+    WifiInfoParserTest.run()
     exitProcess(TestSupport.report())
 }

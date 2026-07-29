@@ -10,6 +10,9 @@
          maskeler. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Android 11+ paket gorunurluk filtresi olmadan yalnizca birkac sistem
+         uygulamasi listelenir. Bir launcher icin tam liste sart. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
     <application
         android:label="U30P"
