@@ -25,7 +25,6 @@ object StackedTheme : Theme {
     private val battOutline = ThemeUtil.stroke(Palette.DIM, 1f)
     private val battFill = ThemeUtil.fill(Palette.DOWN)
     private val shieldPaint = ThemeUtil.fill(Palette.DOWN)
-    private val lockPaint = ThemeUtil.stroke(Palette.DIM2, 1.5f)
 
     override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder) {
         sb.setLength(0)
@@ -81,7 +80,6 @@ object StackedTheme : Theme {
         var width = Geom.BATT_W + 8f
         if (showVpn) width += 19f
         if (showClients) width += 18f
-        width += 10f  // kilit
 
         var x = Geom.CX - width / 2f
         battFill.color = Palette.batteryColor(s.batteryPct)
@@ -95,8 +93,6 @@ object StackedTheme : Theme {
             sb.setLength(0)
             sb.append(s.clients)
             Geom.textAt(c, sb, x, y + 1f, small)
-            x += 18f
         }
-        Geom.padlock(c, x, y - 1f, 10f, lockPaint)
     }
 }

@@ -37,12 +37,31 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
     private var downAt = 0L
     private var longPressFired = false
     private var moved = false
+    private var pageCanScrollUp = false
+    private var pageCanScrollDown = false
 
     var onLongPress: (() -> Unit)? = null
     var onInteraction: (() -> Unit)? = null
 
+    /** Dikey hareketler; null ise yok sayilir ve sayfaya iletilir. */
+    var onSwipeUp: (() -> Unit)? = null
+    var onSwipeDown: (() -> Unit)? = null
+
     /** Kilit acikken uzun basma kilidi acmaz; sayfa kendi islerini yapar. */
     var longPressEnabled = true
+
+    /**
+     * Kilitliyken hicbir dokunma islenmez; yalnizca uzun basma kilidi acar.
+     *
+     * Cihaz cepte tasindigi icin bu sart: kilitsiz durumda kazara kaydirmalar
+     * sayfa degistiriyor, uygulama aciyor ve aksiyon sayfasina kadar
+     * gidebiliyordu.
+     */
+    var locked = true
+        set(v) {
+            field = v
+            for (p in pages) p.lockedIndicator = v
+        }
 
     private val longPress = Runnable {
         if (!moved) {
@@ -63,6 +82,7 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
             val p = pages[i]
             p.pageCount = pages.size
             p.pageIndex = i
+            p.lockedIndicator = locked
             addView(p)
         }
         current = 0
@@ -104,6 +124,29 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
         onInteraction?.invoke()
         val page = currentPage
 
+        // Kilitliyken tek gecerli hareket uzun basmadir.
+        if (locked) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    moved = false
+                    longPressFired = false
+                    postDelayed(longPress, LONG_PRESS_MS)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (!moved &&
+                        (Math.abs(event.x - downX) > slop || Math.abs(event.y - downY) > slop)
+                    ) {
+                        moved = true
+                        removeCallbacks(longPress)
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> removeCallbacks(longPress)
+            }
+            return true
+        }
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downX = event.x
@@ -111,6 +154,10 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
                 downAt = SystemClock.uptimeMillis()
                 moved = false
                 longPressFired = false
+                // Yetenegi hareketin BASINDA yakala: kaydirma sirasinda deger
+                // degisirse hareketin sonunda yanlis karar verilirdi.
+                pageCanScrollUp = page?.canScrollVertically(false) ?: false
+                pageCanScrollDown = page?.canScrollVertically(true) ?: false
                 if (longPressEnabled) postDelayed(longPress, LONG_PRESS_MS)
             }
 
@@ -134,6 +181,17 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
                     // Sayfa degistiren hareket cocuga tikla olarak gitmemeli
                     page?.onRawTouch(cancelEvent(event))
                     return true
+                }
+                if (!longPressFired &&
+                    Math.abs(dy) >= SWIPE_MIN && Math.abs(dy) > Math.abs(dx)
+                ) {
+                    val consumedByPage = if (dy > 0) pageCanScrollDown else pageCanScrollUp
+                    val handler = if (dy < 0) onSwipeUp else onSwipeDown
+                    if (!consumedByPage && handler != null) {
+                        handler.invoke()
+                        page?.onRawTouch(cancelEvent(event))
+                        return true
+                    }
                 }
             }
         }

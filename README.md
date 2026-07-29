@@ -17,18 +17,21 @@ Yerini aldığı `com.ufitools.dashboard` ile karşılaştırma (cihazda ölçü
 
 ## Kullanım
 
-Üç bilgi sayfası yatay kaydırmayla döner:
+Cihaz cepte taşındığı için ekran **kilitli açılır**: bilgi görünür ama hiçbir dokunma işlenmez. Alttaki asma kilit bunu gösterir.
 
-1. **Durum** — saat, operatör, sinyal + teknoloji + RSRP, ↓↑ hız, pil / VPN / istemci
-2. **Detay** — bugün ve bu ay trafik, istemci sayısı, VPN, SoC ve pil sıcaklığı
-3. **Mühendislik** — bant, bant genişliği, RSRP/RSRQ/SINR/PCI/EARFCN/TAC/CI
+```
+KİLİTLİ ──uzun bas (600ms)──> AÇIK ──30 sn hareketsizlik──> KİLİTLİ
+                               │
+                               ├── yatay  : bilgi sayfaları
+                               ├── yukarı : uygulamalar
+                               └── aşağı  : sistem
+```
 
-**Uzun bas (600 ms)** → kilit açılır: `Aksiyonlar ↔ Uygulamalar ↔ WiFi ↔ Ayarlar`. 30 sn hareketsizlikte kendiliğinden kilitlenir.
+**Bilgi sayfaları** — Durum (operatör, sinyal, ↓↑ hız, pil/VPN/istemci) · Detay (bugün ve bu ay trafik, istemci, VPN, sıcaklıklar) · Mühendislik (bant, RSRP/RSRQ/SINR/PCI/EARFCN/TAC/CI).
 
-- **Uygulamalar** — kurulu uygulamalar, ikonlarıyla, kaydırmalı
-- **WiFi** — SSID, parola ve bağlı istemcilerin IP'leri
+**Uygulamalar** — 3×3 ızgara, ekran başına 9 simge, **en çok açtıkların üstte** (açılış sayacı tutulur). Aşağı kaydırınca geri döner.
 
-Yeniden başlat ve veri kes, kilit açıkken bile **1 sn basılı tutma** ister; dış kenarda dolan halka geri bildirim verir, parmak kalkınca iptal olur.
+**Sistem** — Aksiyonlar · WiFi (SSID, parola, bağlı istemciler) · Ayarlar. Yeniden başlat ve veri kes **1 sn basılı tutma** ister; dış kenarda dolan halka geri bildirim verir, parmak kalkınca iptal olur.
 
 Sayfa 1'in üç teması var: **Stacked** (varsayılan), **Arc** (çember sinyal göstergesi), **Balanced** (trafik sayaçları ana ekranda).
 

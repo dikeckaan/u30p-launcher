@@ -10,38 +10,42 @@ import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import com.kaandikec.u30plauncher.core.Snapshot
+import com.kaandikec.u30plauncher.store.AppUsage
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
 
 /**
- * Kurulu uygulamalarin dikey listesi, simgeleriyle.
+ * Uygulama izgarasi: satir basina 3 simge, ekran basina 9 uygulama.
  *
- * Simgeler bir kez 24x24 bitmap'e rasterlestirilip onbellege alinir: Drawable'i
- * her karede olceklendirmek yerine hazir bitmap cizmek hem daha ucuz hem de
- * cizim yolunda allocation yapmaz. ~25 uygulama icin toplam maliyet ~55 KB.
+ * Neden izgara: 240x240'ta dikey liste ekran basina 5 satir gosteriyordu ve
+ * 24 uygulamanin sonuna inmek bes kaydirma aliyordu. Izgarada iki kaydirmada
+ * hepsi geziliyor, simge zaten etiketten hizli taniniyor.
  *
- * Kilit katmanindadir: bilgi sayfalari serbest gezilebilsin ama cihaz cepteyken
- * yanlislikla uygulama acilmasin.
+ * Siralama en cok acilana gore: bir MiFi'de kurulu uygulamalarin cogu hic
+ * acilmaz, alfabetik siralama gunluk kullanilani dibe atiyordu.
  */
 class AppsPage(ctx: Context) : PageView(ctx) {
     companion object {
-        private const val ROW_H = 38f
-        private const val TOP = 32f
-        private const val VISIBLE_BOTTOM = 222f
-        private const val ICON = 24
-        private const val ICON_GAP = 10f
+        private const val COLS = 3
+        private const val CELL_W = 58f
+        private const val CELL_H = 60f
+        private const val ICON = 36
+        private const val TOP = 30f
+        private const val VISIBLE_BOTTOM = 226f
     }
 
-    private val title = ThemeUtil.text(10f, Palette.DIM2)
-    private val label = ThemeUtil.text(13f, Palette.FG)
+    private val label = ThemeUtil.text(8.5f, Palette.DIM).apply {
+        textAlign = Paint.Align.CENTER
+    }
     private val hint = ThemeUtil.text(9f, Palette.DIM2)
-    private val hair = ThemeUtil.hairline(Palette.HAIRLINE)
     private val marker = ThemeUtil.fill(Palette.DOWN)
     private val iconPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
-    private val highlight = ThemeUtil.fill(0x14FFFFFF)
+    private val highlight = ThemeUtil.fill(0x1FFFFFFF)
 
+    private val usage = AppUsage(ctx)
     private val labels = ArrayList<String>(32)
     private val icons = ArrayList<Bitmap?>(32)
     private val intents = ArrayList<Intent>(32)
+    private val keys = ArrayList<String>(32)
 
     private val iconSrc = Rect()
     private val iconDst = Rect()
@@ -51,15 +55,19 @@ class AppsPage(ctx: Context) : PageView(ctx) {
     private var downY = 0f
     private var downScroll = 0f
     private var dragging = false
-    private var pressedRow = -1
+    private var pressed = -1
     private val slop = ViewConfiguration.get(ctx).scaledTouchSlop
 
     override val showDots: Boolean get() = false
     override val wantsRawTouch: Boolean get() = true
 
-    /** Kilit acildiginda cagrilir; liste seyrek degistigi icin bir kez kurulur. */
+    /** Acilista bir kez kurulur; siralama her acilista tazelenir. */
     fun ensureLoaded() {
-        if (labels.isNotEmpty()) return
+        if (labels.isEmpty()) load()
+        else resort()
+    }
+
+    private fun load() {
         val pm = context.packageManager
         val probe = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val found: List<ResolveInfo> = try {
@@ -68,10 +76,10 @@ class AppsPage(ctx: Context) : PageView(ctx) {
             return
         }
 
-        val rows = ArrayList<Triple<String, Bitmap?, Intent>>(found.size)
+        val rows = ArrayList<Entry>(found.size)
         for (ri in found) {
             val ai = ri.activityInfo ?: continue
-            if (ai.packageName == context.packageName) continue  // kendimizi listeleme
+            if (ai.packageName == context.packageName) continue
             val name = try {
                 ri.loadLabel(pm)?.toString() ?: ai.packageName
             } catch (_: Throwable) {
@@ -82,40 +90,54 @@ class AppsPage(ctx: Context) : PageView(ctx) {
             } catch (_: Throwable) {
                 null
             }
+            val key = ai.packageName + "/" + ai.name
             val i = Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LAUNCHER)
                 .setClassName(ai.packageName, ai.name)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
-            rows.add(Triple(name, icon, i))
+            rows.add(Entry(name, icon, i, key))
         }
-        rows.sortBy { it.first.lowercase() }
+        entries = rows
+        resort()
+    }
 
-        labels.clear(); icons.clear(); intents.clear()
-        for ((n, b, i) in rows) {
-            labels.add(n); icons.add(b); intents.add(i)
+    private class Entry(
+        val label: String,
+        val icon: Bitmap?,
+        val intent: Intent,
+        val key: String
+    )
+
+    private var entries: List<Entry> = emptyList()
+
+    /** Cok acilan uste; esitlikte alfabetik. */
+    private fun resort() {
+        val sorted = entries.sortedWith(
+            compareByDescending<Entry> { usage.count(it.key) }.thenBy { it.label.lowercase() }
+        )
+        labels.clear(); icons.clear(); intents.clear(); keys.clear()
+        for (e in sorted) {
+            labels.add(e.label); icons.add(e.icon); intents.add(e.intent); keys.add(e.key)
         }
-
-        val content = labels.size * ROW_H
+        val rowCount = (labels.size + COLS - 1) / COLS
+        val content = rowCount * CELL_H
         val viewport = VISIBLE_BOTTOM - TOP
         maxScroll = if (content > viewport) content - viewport else 0f
-        scrollY = 0f
+        if (scrollY > maxScroll) scrollY = maxScroll
         invalidate()
     }
 
-    /** Drawable'i bir kez sabit boyutlu bitmap'e cizer. */
     private fun rasterize(d: android.graphics.drawable.Drawable?): Bitmap? {
         d ?: return null
         val bmp = Bitmap.createBitmap(ICON, ICON, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
         d.setBounds(0, 0, ICON, ICON)
-        d.draw(c)
+        d.draw(Canvas(bmp))
         return bmp
     }
 
-    override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, "UYGULAMALAR", 16f, title)
-        Geom.hairline(c, 28f, 60f, hair)
+    private fun cellCx(col: Int): Float = Geom.CX + (col - 1) * CELL_W
 
+    override fun draw(c: Canvas, s: Snapshot) {
         if (labels.isEmpty()) {
             Geom.centerText(c, "liste bos", 110f, hint)
             return
@@ -124,52 +146,58 @@ class AppsPage(ctx: Context) : PageView(ctx) {
         c.save()
         c.clipRect(0f, TOP, Geom.W, VISIBLE_BOTTOM)
         for (i in labels.indices) {
-            val y = TOP + i * ROW_H - scrollY
-            if (y > VISIBLE_BOTTOM || y + ROW_H < TOP) continue
-            drawRow(c, i, y)
+            val row = i / COLS
+            val col = i % COLS
+            val y = TOP + row * CELL_H - scrollY
+            if (y > VISIBLE_BOTTOM || y + CELL_H < TOP) continue
+            drawCell(c, i, cellCx(col), y)
         }
         c.restore()
 
         drawScrollbar(c)
     }
 
-    private fun drawRow(c: Canvas, i: Int, y: Float) {
-        val name = labels[i]
-        val icon = icons[i]
-        val textW = Geom.textWidth(name, label)
-        val total = ICON + ICON_GAP + textW
-        // Satiri dairenin ortasina yasla; yuvarlak ekranda kenarlar dar
-        val x = Geom.CX - total / 2f
-
-        if (i == pressedRow) {
-            c.drawRoundRect(x - 8f, y + 1f, x + total + 8f, y + ROW_H - 3f, 8f, 8f, highlight)
+    private fun drawCell(c: Canvas, i: Int, cx: Float, y: Float) {
+        if (i == pressed) {
+            c.drawRoundRect(cx - 26f, y + 1f, cx + 26f, y + CELL_H - 5f, 10f, 10f, highlight)
         }
-
+        val icon = icons[i]
         if (icon != null) {
             iconSrc.set(0, 0, icon.width, icon.height)
-            val top = (y + (ROW_H - ICON) / 2f).toInt()
-            iconDst.set(x.toInt(), top, x.toInt() + ICON, top + ICON)
+            val left = (cx - ICON / 2f).toInt()
+            val top = (y + 6f).toInt()
+            iconDst.set(left, top, left + ICON, top + ICON)
             c.drawBitmap(icon, iconSrc, iconDst, iconPaint)
         }
-        Geom.textAt(c, name, x + ICON + ICON_GAP, y + 11f, label)
+        // Etiket hucreye sigmiyorsa kirp; ... eklemek 8.5px'te yer kaybettiriyor
+        val name = labels[i]
+        var text: CharSequence = name
+        if (Geom.textWidth(name, label) > CELL_W - 4f) {
+            var n = name.length
+            while (n > 1 && Geom.textWidth(name.substring(0, n), label) > CELL_W - 4f) n--
+            text = name.substring(0, n)
+        }
+        c.drawText(text, 0, text.length, cx, y + ICON + 17f, label)
     }
 
-    /** Sag kenarda ince bir konum gostergesi. */
     private fun drawScrollbar(c: Canvas) {
         if (maxScroll <= 0f) return
         val trackTop = TOP + 4f
         val trackH = (VISIBLE_BOTTOM - 4f) - trackTop
         val viewport = VISIBLE_BOTTOM - TOP
-        val content = labels.size * ROW_H
-        val thumbH = (trackH * viewport / content).coerceAtLeast(14f)
+        val rowCount = (labels.size + COLS - 1) / COLS
+        val thumbH = (trackH * viewport / (rowCount * CELL_H)).coerceAtLeast(14f)
         val top = trackTop + (trackH - thumbH) * (scrollY / maxScroll)
-        val x = Geom.CX + Geom.halfWidthAt(0f) - 10f
-        c.drawRoundRect(x, top, x + 3f, top + thumbH, 1.5f, 1.5f, marker)
+        c.drawRoundRect(232f, top, 235f, top + thumbH, 1.5f, 1.5f, marker)
     }
 
-    private fun rowAt(y: Float): Int {
+    private fun cellAt(x: Float, y: Float): Int {
         if (y < TOP || y > VISIBLE_BOTTOM) return -1
-        val idx = ((y - TOP + scrollY) / ROW_H).toInt()
+        val row = ((y - TOP + scrollY) / CELL_H).toInt()
+        var col = -1
+        for (k in 0 until COLS) if (Math.abs(x - cellCx(k)) < CELL_W / 2f) col = k
+        if (col < 0) return -1
+        val idx = row * COLS + col
         return if (idx in labels.indices) idx else -1
     }
 
@@ -179,7 +207,7 @@ class AppsPage(ctx: Context) : PageView(ctx) {
                 downY = event.y
                 downScroll = scrollY
                 dragging = false
-                pressedRow = rowAt(event.y)
+                pressed = cellAt(event.x, event.y)
                 invalidate()
             }
 
@@ -187,7 +215,7 @@ class AppsPage(ctx: Context) : PageView(ctx) {
                 val dy = event.y - downY
                 if (!dragging && Math.abs(dy) > slop) {
                     dragging = true
-                    pressedRow = -1
+                    pressed = -1
                 }
                 if (dragging) {
                     scrollY = (downScroll - dy).coerceIn(0f, maxScroll)
@@ -196,30 +224,34 @@ class AppsPage(ctx: Context) : PageView(ctx) {
             }
 
             MotionEvent.ACTION_UP -> {
-                if (!dragging && pressedRow >= 0 && pressedRow == rowAt(event.y)) {
-                    launch(pressedRow)
+                if (!dragging && pressed >= 0 && pressed == cellAt(event.x, event.y)) {
+                    launch(pressed)
                 }
-                pressedRow = -1
+                pressed = -1
                 dragging = false
                 invalidate()
             }
 
             MotionEvent.ACTION_CANCEL -> {
-                pressedRow = -1
+                pressed = -1
                 dragging = false
                 invalidate()
             }
         }
     }
 
+    override fun canScrollVertically(fingerDown: Boolean): Boolean =
+        if (fingerDown) scrollY > 0.5f else scrollY < maxScroll - 0.5f
+
     private fun launch(index: Int) {
         val intent = intents.getOrNull(index) ?: return
         try {
             context.startActivity(intent)
+            usage.record(keys[index])
         } catch (_: Throwable) {
-            // Kaldirilmis veya devre disi birakilmis uygulama: listeyi tazele
-            labels.clear(); icons.clear(); intents.clear()
-            ensureLoaded()
+            labels.clear(); icons.clear(); intents.clear(); keys.clear()
+            entries = emptyList()
+            load()
         }
     }
 }
