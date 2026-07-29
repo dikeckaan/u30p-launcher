@@ -70,7 +70,17 @@ Sonuç: `set-home-activity` ile ayarlansa bile yeni launcher **sonraki boot'ta i
 
 Ayrıca `force-u30pro-launcher` ZTE stock launcher'ı devre dışı bıraktığı için, UFI dashboard kaldırılırsa cihazda hiç HOME kalmaz.
 
-**Karar:** Faz 1'de modüllere hiç dokunulmaz (bkz. §8).
+**Karar:** Faz 1'de modüllere hiç dokunulmaz; Faz 2'de `ufi_default_launcher` bize uyarlanır ve `force-u30pro-launcher` kaldırılır (bkz. §8).
+
+**Faz 2'de öğrenilen:** `force-u30pro-launcher`'ın `pm disable-user com.zte.mifavor.ufi.home` satırı **zorunludur**. Modülü devre dışı bırakırken bu satır taşınmadığında, ZTE stock launcher boot'ta kendini öne çekip yeni launcher'ı eziyor — orijinal script'in yorumu da bunu söylüyordu. Satır `ufi_default_launcher`'a taşındı; band tuşuyla ZTE'ye geçilirken paket tekrar etkinleştiriliyor.
+
+**Cihazda ayrı bir keyguard var.** Operatör, teknoloji ve anlık hızı gösterip "uzun basıp aç" diyen ekran bir launcher değil, ZTE keyguard'ıdır (`isKeyguardShowing=true`). Launcher'ın penceresi onun arkasında `noSurface` durumunda kalır. İçeriği Sayfa 1 ile birebir çakıştığı ve her uyandırmada fazladan bir uzun basma dayattığı için kapatıldı:
+
+```
+adb shell su -c 'locksettings set-disabled true'     # geri al: false
+```
+
+PIN veya şifre tanımlı olmadığı (`locksettings verify` boş kimlikle geçiyor) için bu bir güvenlik zayıflaması değil.
 
 ## 3. Mimari
 
@@ -113,14 +123,14 @@ Bunlar kabul kriteridir, sonradan yapılacak optimizasyon değil.
 
 | Metrik | Hedef | Ölçülen | Sonuç |
 |---|---|---|---|
-| RAM (PSS, ekran açık) | < 20 MB | **20.1 MB** | sınırda tutturuldu |
-| RAM (PSS, ekran kapalı) | < 12 MB | **27.8 MB** | ✗ hedef gerçekçi değildi, aşağıya bakınız |
+| RAM (PSS, ekran açık) | < 20 MB | **19.8 MB** | ✓ |
+| RAM (PSS, ekran kapalı) | < 12 MB | **27.2 MB** | ✗ hedef gerçekçi değildi, aşağıya bakınız |
 | CPU (ekran açık, boşta) | < %1 | **%0.0** | ✓ `top` çözünürlüğünün altında |
 | CPU (ekran kapalı) | %0.0 | **%0.0** | ✓ |
 | Soğuk açılış | < 250 ms | **360 ms** | ✗ 1.4× aşıldı |
-| APK boyutu | < 150 KB | **40 KB** | ✓ hedefin 3.7 katı altında |
+| APK boyutu | < 150 KB | **48 KB** | ✓ hedefin 3 katı altında |
 
-Ölçüm: `./measure.sh` (cihazda, 2026-07-29).
+Ölçüm: `./measure.sh` (cihazda, 2026-07-29; HOME olarak çalışırken, uygulama listesi ve WiFi sayfası dahil).
 
 ### Mevcut launcher ile karşılaştırma
 
@@ -128,9 +138,9 @@ Asıl anlamlı ölçü, yerini aldığımız uygulama:
 
 | | U30P Launcher | `com.ufitools.dashboard` 1.6.1 | Fark |
 |---|---|---|---|
-| RAM (PSS, çalışırken) | 20.1 MB | 75.9 MB | **3.8× daha az** |
+| RAM (PSS, çalışırken) | 19.8 MB | 75.9 MB | **3.8× daha az** |
 | RSS | 91 MB | 149 MB | 1.6× daha az |
-| APK | 40 KB | 2.2 MB | **54× daha küçük** |
+| APK | 48 KB | 2.2 MB | **45× daha küçük** |
 
 ### `hardwareAccelerated` kararı ölçümle sabitlendi
 

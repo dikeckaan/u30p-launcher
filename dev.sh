@@ -6,7 +6,7 @@
 set -euo pipefail
 
 A="$HOME/platform-tools/adb"
-D="${U30P_SERIAL:-192.168.0.1:5555}"
+D="${U30P_SERIAL:-192.168.0.1:55555}"
 PKG=com.kaandikec.u30plauncher
 ACT="$PKG/.LauncherActivity"
 SHOT_DIR="${U30P_SHOTS:-/tmp/u30p}"

@@ -47,8 +47,15 @@ set_home() {
 toggle_launcher() {
     case "$(cat "$STATE" 2>/dev/null)" in
         new) set_home "$UFI" ufi ;;
-        ufi) set_home "$ZTE" zte ;;
-        *)   set_home "$NEW" new ;;
+        ufi)
+            # ZTE boot'ta kapatiliyor; ona gecmek icin once acmak gerek
+            pm enable com.zte.mifavor.ufi.home >/dev/null 2>&1
+            set_home "$ZTE" zte
+            ;;
+        *)
+            pm disable-user --user 0 com.zte.mifavor.ufi.home >/dev/null 2>&1
+            set_home "$NEW" new
+            ;;
     esac
 }
 
@@ -93,7 +100,11 @@ dispatch() {
     done
     sleep 5
 
-    # UFI dashboard geri donus yolu olarak kurulu kalir
+    # ZTE stock launcher kendini one cekip yeni launcher'i ezer; kapatilmali.
+    # (force-u30pro-launcher bu isi yapiyordu, o modul kaldirildi.)
+    pm disable-user --user 0 com.zte.mifavor.ufi.home >/dev/null 2>&1
+
+    # UFI dashboard geri donus yolu olarak kurulu ve etkin kalir
     cmd package install-existing com.ufitools.dashboard >/dev/null 2>&1
     pm enable com.ufitools.dashboard >/dev/null 2>&1
     cmd package install-existing com.kaandikec.u30plauncher >/dev/null 2>&1
