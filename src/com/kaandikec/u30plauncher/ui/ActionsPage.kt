@@ -88,12 +88,26 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
         }
     }
 
+    /**
+     * Cihazdaki deger bizim on tanimli seceneklerimizden biri olmak zorunda
+     * degil (baska bir uygulama veya kullanici degistirmis olabilir); o durumda
+     * "kapanmaz" yazmak yaniltici olur, gercek sureyi gosteririz.
+     */
     private fun appendTimeout(sb: StringBuilder, ms: Int) {
-        when (ms) {
-            15_000 -> sb.append("15 sn")
-            60_000 -> sb.append("1 dk")
-            300_000 -> sb.append("5 dk")
-            else -> sb.append("kapanmaz")
+        when {
+            ms == Int.MAX_VALUE || ms <= 0 -> sb.append("kapanmaz")
+            ms < 60_000 -> {
+                sb.append(ms / 1000)
+                sb.append(" sn")
+            }
+            ms < 3_600_000 -> {
+                sb.append(ms / 60_000)
+                sb.append(" dk")
+            }
+            else -> {
+                sb.append(ms / 3_600_000)
+                sb.append(" sa")
+            }
         }
     }
 
