@@ -11,6 +11,10 @@ Yerini aldığı `com.ufitools.dashboard` ile karşılaştırma (cihazda ölçü
 | CPU (boşta) | %0.0 | — |
 | Bağımlılık | yok | UFI-TOOLS web arayüzü |
 
+## Durum
+
+**Varsayılan HOME olarak kurulu ve çalışıyor.** adb, `wireless-adb-keeper` modülü nedeniyle **55555** portunda.
+
 ## Kullanım
 
 Üç bilgi sayfası yatay kaydırmayla döner:
@@ -36,10 +40,6 @@ Gradle ve AGP kullanılmaz. Gerekenler: Android SDK build-tools 35.0.1, `android
 ./build.sh          # build/u30p-launcher.apk
 ./run-tests.sh      # JVM birim testleri (cihaz gerekmez)
 ```
-
-## Durum
-
-**Varsayılan HOME olarak kurulu ve çalışıyor.** adb, `wireless-adb-keeper` modülü nedeniyle **55555** portunda.
 
 ## Cihaza kurma
 
@@ -75,6 +75,12 @@ Band tuşuna **1 kez** basmak launcher'lar arasında geçiş yapar: yeni → UFI
 **Konum servisi kapalı** — Android hücre kimliğini izinlerden bağımsız maskeler. Operatör adı `TelephonyManager`'dan, hücre kimliği root ile `dumpsys`'ten okunur; sistem ayarı değiştirilmez.
 
 **adb düşerse:** `./dev.sh revive` — cihazın `ttyd` web terminali (port 1146) üzerinden `adbd`'yi geri başlatır. Bu kanal adbd'ye bağlı olmadığı için emniyet ağıdır.
+
+Bu oturumda `adbd` iki kez kendiliğinden durdu (cihaz yeniden başlamadan). `wireless-adb-keeper` bunu yakalamıyor: döngüsü yalnızca `service.adb.tcp.port` değerine bakıyor, port zaten doğruyken `init.svc.adbd=stopped` durumunu görmüyor. Modüle şu koşulun eklenmesi boşluğu kapatır:
+
+```sh
+[ "$(getprop init.svc.adbd)" = "running" ] || setprop ctl.start adbd
+```
 
 ## Belgeler
 
