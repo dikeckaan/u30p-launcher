@@ -51,6 +51,19 @@ class LauncherActivity : Activity() {
     private lateinit var wifiPage: WifiPage
     private lateinit var settingsPage: SettingsPage
 
+    /**
+     * Ekran kapanir kapanmaz kilitle.
+     *
+     * Yalnizca `onPause`'a guvenmek yeterli degildi: bazi kapanma yollarinda
+     * kilit uygulanmadan kaliyordu ve cihaz cepte korumasiz aciliyordu.
+     */
+    private val screenOff = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
+            lock()
+        }
+    }
+    private var screenOffRegistered = false
+
     private val relockHandler = Handler(Looper.getMainLooper())
     private val relock = Runnable { lock() }
     private var locked = true
@@ -81,11 +94,22 @@ class LauncherActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        if (!screenOffRegistered) {
+            registerReceiver(
+                screenOff,
+                android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF)
+            )
+            screenOffRegistered = true
+        }
         hub.resume { pager.update(it) }
     }
 
     override fun onPause() {
         super.onPause()
+        if (screenOffRegistered) {
+            try { unregisterReceiver(screenOff) } catch (_: Throwable) {}
+            screenOffRegistered = false
+        }
         hub.pause()
         relockHandler.removeCallbacks(relock)
         // Ekran kapanip acildiginda her zaman kilitli baslasin.
@@ -184,8 +208,11 @@ class LauncherActivity : Activity() {
     private fun lock() {
         relockHandler.removeCallbacks(relock)
         locked = true
+        if (mode != Mode.INFO) showInfo()
+        // showInfo() zaten uyguluyor ama tek giris noktasi olsun diye burada da
         pager.locked = true
-        if (mode != Mode.INFO) showInfo() else pager.invalidate()
+        pager.index = 0
+        pager.invalidate()
     }
 
     private fun scheduleRelock() {
