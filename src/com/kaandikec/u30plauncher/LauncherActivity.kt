@@ -26,7 +26,9 @@ import com.kaandikec.u30plauncher.ui.theme.Theme
  *   ACIK      yatay: bilgi sayfalari
  *             yukari: uygulamalar
  *             asagi:  sistem (aksiyon / WiFi / ayar)
- *             30 sn hareketsizlik --> KILITLI
+ *
+ * Kilit yalnizca EKRAN KAPANINCA veya 2 dk hareketsizlikte girer. Bir
+ * uygulamadan ana ekrana donmek kilitlemez — o aktif kullanimdir.
  *
  * Cihaz cepte tasindigi icin kilit tum ekrani kapsar, yalnizca aksiyon
  * sayfasini degil: kilitsiz bilgi sayfalarinda kazara kaydirmalar sayfa
@@ -63,6 +65,7 @@ class LauncherActivity : Activity() {
         }
     }
     private var screenOffRegistered = false
+    private var pausedAt = 0L
 
     private val relockHandler = Handler(Looper.getMainLooper())
     private val relock = Runnable { lock() }
@@ -90,32 +93,47 @@ class LauncherActivity : Activity() {
 
         showInfo()
         setContentView(pager)
+
+        // Activity omru boyunca kayitli: baska uygulama ondeyken ekran
+        // kapanirsa da yakalanmali. Tetiklenene kadar maliyeti yok.
+        registerReceiver(
+            screenOff,
+            android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF),
+            android.content.Context.RECEIVER_NOT_EXPORTED
+        )
+        screenOffRegistered = true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (screenOffRegistered) {
+            try { unregisterReceiver(screenOff) } catch (_: Throwable) {}
+            screenOffRegistered = false
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        if (!screenOffRegistered) {
-            registerReceiver(
-                screenOff,
-                android.content.IntentFilter(android.content.Intent.ACTION_SCREEN_OFF)
-            )
-            screenOffRegistered = true
+        // Uzun sure uzaktaysak kilitle; kisa bir uygulama ziyaretinden
+        // donmek kilidi kapatmasin.
+        if (pausedAt > 0L &&
+            android.os.SystemClock.elapsedRealtime() - pausedAt > RELOCK_MS
+        ) {
+            lock()
         }
+        pausedAt = 0L
+        if (!locked) scheduleRelock()
         hub.resume { pager.update(it) }
     }
 
     override fun onPause() {
         super.onPause()
-        if (screenOffRegistered) {
-            try { unregisterReceiver(screenOff) } catch (_: Throwable) {}
-            screenOffRegistered = false
-        }
         hub.pause()
         relockHandler.removeCallbacks(relock)
-        // Ekran kapanip acildiginda her zaman kilitli baslasin.
-        locked = true
-        pager.locked = true
-        if (mode != Mode.INFO) showInfo()
+        pausedAt = android.os.SystemClock.elapsedRealtime()
+        // Burada KILITLEME: onPause bir uygulama one gelince de calisiyor ve
+        // uygulamadan donuste her seferinde yeniden uzun basmak gerekiyordu.
+        // Kilit ekran kapaninca (receiver) veya bosta kalinca (relock) girer.
     }
 
     /**
@@ -130,10 +148,19 @@ class LauncherActivity : Activity() {
         }
     }
 
-    /** HOME tusuna basildiginda basa don ve kilitle. */
+    /**
+     * HOME tusuna basildiginda basa don — ama KILITLEME.
+     *
+     * Once burada da kilitleniyordu; bir uygulamadan cikip ana ekrana donmek
+     * her seferinde yeniden uzun basmayi gerektiriyordu. Uygulamadan donmek
+     * aktif kullanimdir; kilit ekran kapaninca veya bosta kalinca devreye
+     * girmeli, donuste degil.
+     */
     override fun onNewIntent(intent: android.content.Intent?) {
         super.onNewIntent(intent)
-        lock()
+        if (mode != Mode.INFO) showInfo()
+        pager.index = 0
+        if (!locked) scheduleRelock()
     }
 
     private fun themeFor(id: Int): Theme = when (id) {
