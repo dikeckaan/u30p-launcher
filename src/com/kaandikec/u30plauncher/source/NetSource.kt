@@ -45,7 +45,13 @@ class NetSource {
         0
     }
 
-    /** Bir ornek alir; hizlari onceki ornege gore gunceller. */
+    /**
+     * Bir ornek alir; hizlari onceki ornege gore gunceller.
+     *
+     * `nowMs` MONOTON bir saat olmali (`SystemClock.elapsedRealtime`). Duvar
+     * saati kullanmak hataliydi: acilistan birkac saniye sonra NTP eslemesi
+     * saati ziplatiyor, dt devasa veya negatif oluyor ve hizlar bozuluyordu.
+     */
     fun sample(nowMs: Long) {
         val len = read()
         if (len <= 0) return

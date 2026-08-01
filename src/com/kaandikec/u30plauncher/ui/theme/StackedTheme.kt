@@ -18,8 +18,10 @@ object StackedTheme : Theme {
     private val meta = ThemeUtil.text(11f, Palette.DIM)
     private val unit = ThemeUtil.text(11f, Palette.DIM2)
     private val small = ThemeUtil.text(10f, Palette.DIM)
-    private val down = ThemeUtil.text(38f, Palette.DOWN)
-    private val up = ThemeUtil.text(38f, Palette.UP)
+    private val down = ThemeUtil.text(34f, Palette.DOWN)
+    private val up = ThemeUtil.text(34f, Palette.UP)
+    private val downUnit = ThemeUtil.text(11f, Palette.DOWN)
+    private val upUnit = ThemeUtil.text(11f, Palette.UP)
     private val barOn = ThemeUtil.fill(Palette.FG)
     private val barOff = ThemeUtil.fill(Palette.TRACK)
     private val battOutline = ThemeUtil.stroke(Palette.DIM, 1f)
@@ -48,27 +50,30 @@ object StackedTheme : Theme {
         Geom.signalBars(c, x0, 72f, s.signalLevel, barOn, barOff)
         Geom.textAt(c, sb, x0 + Geom.BARS_W + 8f, 74f, meta)
 
-        // Iki hiz tek birim etiketi paylasir; ikisi de buyugun olceginde yazilir
-        val unitIdx = Fmt.speedUnitIndex(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed)
-        drawSpeed(c, sb, 100f, s.rxSpeed, unitIdx, down, true)
-        drawSpeed(c, sb, 144f, s.txSpeed, unitIdx, up, false)
-
-        sb.setLength(0)
-        sb.append(Fmt.unitName(unitIdx))
-        Geom.centerText(c, sb, 184f, unit)
+        // Her deger kendi birimini yaninda tasir: indirme bps iken yukleme
+        // Mbps olabiliyor, tek ortak etiket ikisinden birini yanlis tanimlardi.
+        drawSpeed(c, sb, 106f, s.rxSpeed, down, downUnit, true)
+        drawSpeed(c, sb, 152f, s.txSpeed, up, upUnit, false)
 
         drawBottomStrip(c, s, sb)
     }
 
+    /** ok + sayi + kendi birimi, birlikte ortalanir. */
     private fun drawSpeed(
-        c: Canvas, sb: StringBuilder, y: Float, v: Long, unitIdx: Int, p: Paint, isDown: Boolean
+        c: Canvas, sb: StringBuilder, y: Float, v: Long,
+        numPaint: Paint, unitPaint: Paint, isDown: Boolean
     ) {
         sb.setLength(0)
-        Fmt.appendSpeedValueAt(sb, v, unitIdx)
-        val w = Geom.textWidth(sb, p)
-        val x = Geom.CX - (w + 22f) / 2f
-        Geom.arrow(c, x + 8f, y + 14f, 20f, isDown, p)
-        Geom.textAt(c, sb, x + 22f, y, p)
+        Fmt.appendSpeedValue(sb, v)
+        val numW = Geom.textWidth(sb, numPaint)
+        val unitText = Fmt.speedUnit(v)
+        val unitW = Geom.textWidth(unitText, unitPaint)
+        val total = 20f + numW + 5f + unitW
+        val x = Geom.CX - total / 2f
+        Geom.arrow(c, x + 7f, y + 13f, 18f, isDown, numPaint)
+        Geom.textAt(c, sb, x + 20f, y, numPaint)
+        // Birim, sayinin taban cizgisine yakin otursun
+        Geom.textAt(c, unitText, x + 20f + numW + 5f, y + 17f, unitPaint)
     }
 
     /** Pil her zaman; VPN yalnizca bagliyken; istemci yalnizca > 0 iken. */

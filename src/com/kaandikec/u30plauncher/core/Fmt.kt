@@ -69,32 +69,10 @@ object Fmt {
         appendScaledValue(sb, bits, 1000.0, BIT_UNITS.size)
     }
 
-    fun speedUnit(bytesPerSec: Long): String = BIT_UNITS[speedUnitIndex(bytesPerSec)]
-
-    fun speedUnitIndex(bytesPerSec: Long): Int {
+    /** `appendSpeedValue` ile ayni olcegi secer; deger ve birim tutarli kalir. */
+    fun speedUnit(bytesPerSec: Long): String {
         val bits = if (bytesPerSec > 0) bytesPerSec * 8 else 0L
-        return unitIndexOf(bits, 1000.0, BIT_UNITS.size)
-    }
-
-    fun unitName(index: Int): String = BIT_UNITS[index.coerceIn(0, BIT_UNITS.size - 1)]
-
-    /**
-     * Degeri VERILEN birimde yazar.
-     *
-     * Indirme ve yukleme tek bir birim etiketi paylastigi icin ikisinin de ayni
-     * olcekte olmasi sart; aksi halde "12.4" ve "4.32" yan yana gorunur ama tek
-     * etiket ikisinden yalnizca birini dogru tanimlar.
-     */
-    fun appendSpeedValueAt(sb: StringBuilder, bytesPerSec: Long, unitIndex: Int) {
-        val bits = if (bytesPerSec > 0) bytesPerSec * 8 else 0L
-        val idx = unitIndex.coerceIn(0, BIT_UNITS.size - 1)
-        var div = 1.0
-        repeat(idx) { div *= 1000.0 }
-        val v = bits / div
-        val d = decimalsFor(v, idx)
-        var pow = 1L
-        repeat(d) { pow *= 10 }
-        appendDec(sb, Math.round(v * pow), d)
+        return BIT_UNITS[unitIndexOf(bits, 1000.0, BIT_UNITS.size)]
     }
 
     // --- yalnizca test icin ---
@@ -102,9 +80,6 @@ object Fmt {
 
     fun speedValueOf(bytesPerSec: Long): String =
         StringBuilder().also { appendSpeedValue(it, bytesPerSec) }.toString()
-
-    fun speedValueAtOf(bytesPerSec: Long, unitIndex: Int): String =
-        StringBuilder().also { appendSpeedValueAt(it, bytesPerSec, unitIndex) }.toString()
 
     fun speed(bytesPerSec: Long): String = speedValueOf(bytesPerSec) + " " + speedUnit(bytesPerSec)
 }

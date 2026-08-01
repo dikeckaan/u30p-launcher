@@ -76,7 +76,7 @@ class DataHub(ctx: Context) {
     private val tick = object : Runnable {
         override fun run() {
             if (!running) return
-            net.sample(System.currentTimeMillis())
+            net.sample(SystemClock.elapsedRealtime())
             refreshSlowIfDue()
             rebuild()
             work?.postDelayed(this, prefs.refreshMs.toLong())

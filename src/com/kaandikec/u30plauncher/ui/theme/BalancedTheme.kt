@@ -14,8 +14,9 @@ object BalancedTheme : Theme {
     private val clock = ThemeUtil.text(11f, Palette.DIM)
     private val operator = ThemeUtil.text(15f, Palette.FG)
     private val meta = ThemeUtil.text(11f, Palette.DIM)
-    private val down = ThemeUtil.text(30f, Palette.DOWN)
+    private val down = ThemeUtil.text(28f, Palette.DOWN)
     private val up = ThemeUtil.text(15f, Palette.UP)
+    private val downUnit = ThemeUtil.text(10f, Palette.DOWN)
     private val label = ThemeUtil.text(9f, Palette.DIM2)
     private val value = ThemeUtil.text(14f, Palette.FG)
     private val barOn = ThemeUtil.fill(Palette.FG)
@@ -59,20 +60,21 @@ object BalancedTheme : Theme {
 
         Geom.hairline(c, 88f, 74f, hair)
 
-        // Iki hiz tek birim etiketi paylasir; ikisi de buyugun olceginde yazilir
-        val unitIdx = Fmt.speedUnitIndex(if (s.rxSpeed > s.txSpeed) s.rxSpeed else s.txSpeed)
-
+        // Her deger kendi birimiyle
         sb.setLength(0)
-        Fmt.appendSpeedValueAt(sb, s.rxSpeed, unitIdx)
+        Fmt.appendSpeedValue(sb, s.rxSpeed)
         var w = Geom.textWidth(sb, down)
-        var x = Geom.CX - (w + 20f) / 2f
-        Geom.arrow(c, x + 7f, 110f, 16f, true, downFill)
-        Geom.textAt(c, sb, x + 20f, 98f, down)
+        val rxUnit = Fmt.speedUnit(s.rxSpeed)
+        val rxUnitW = Geom.textWidth(rxUnit, downUnit)
+        var x = Geom.CX - (18f + w + 4f + rxUnitW) / 2f
+        Geom.arrow(c, x + 6f, 110f, 15f, true, downFill)
+        Geom.textAt(c, sb, x + 18f, 98f, down)
+        Geom.textAt(c, rxUnit, x + 18f + w + 4f, 112f, downUnit)
 
         sb.setLength(0)
-        Fmt.appendSpeedValueAt(sb, s.txSpeed, unitIdx)
-        sb.append("  ")
-        sb.append(Fmt.unitName(unitIdx))
+        Fmt.appendSpeedValue(sb, s.txSpeed)
+        sb.append(' ')
+        sb.append(Fmt.speedUnit(s.txSpeed))
         w = Geom.textWidth(sb, up)
         x = Geom.CX - (w + 14f) / 2f
         Geom.arrow(c, x + 5f, 141f, 11f, false, upFill)
