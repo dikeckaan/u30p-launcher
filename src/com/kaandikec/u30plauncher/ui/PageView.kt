@@ -15,6 +15,19 @@ abstract class PageView(ctx: Context) : View(ctx) {
     var pageCount: Int = 1
     var pageIndex: Int = 0
 
+    private var lockFlashUntil = 0L
+
+    /**
+     * Kilitliyken dokunuldugunda gostergeyi kisa sure vurgular.
+     *
+     * Kilitli ekranda hicbir sey olmamasi "bozuk" gibi hissettiriyordu;
+     * asma kilidin parlamasi nedenini aciklar.
+     */
+    fun flashLock() {
+        lockFlashUntil = android.os.SystemClock.uptimeMillis() + 500L
+        invalidate()
+    }
+
     /** Kilit durumu; Pager tarafindan atanir, gostergeyi surer. */
     var lockedIndicator: Boolean = true
         set(v) {
@@ -52,8 +65,15 @@ abstract class PageView(ctx: Context) : View(ctx) {
         // onun yerine asma kilit cizilir. Boylece durum tek bakista okunur ve
         // alt seritteki pil/VPN/istemci gostergeleriyle cakismaz.
         if (showDots) {
-            if (lockedIndicator) Geom.padlock(canvas, Geom.CX - 5f, 218f, 10f, lockPaint)
-            else Geom.dots(canvas, pageCount, pageIndex, 222f, dotOn, dotOff)
+            if (lockedIndicator) {
+                val flashing = android.os.SystemClock.uptimeMillis() < lockFlashUntil
+                lockPaint.color = if (flashing) Palette.FG else Palette.DIM2
+                val size = if (flashing) 13f else 10f
+                Geom.padlock(canvas, Geom.CX - size / 2f, 220f - size, size, lockPaint)
+                if (flashing) postInvalidateDelayed(60L)
+            } else {
+                Geom.dots(canvas, pageCount, pageIndex, 222f, dotOn, dotOff)
+            }
         }
     }
 

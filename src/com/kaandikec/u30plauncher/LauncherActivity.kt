@@ -34,7 +34,11 @@ import com.kaandikec.u30plauncher.ui.theme.Theme
  */
 class LauncherActivity : Activity() {
     companion object {
-        private const val RELOCK_MS = 30_000L
+        /**
+         * 30 sn cok kisaydi: ekrana bakip dusunurken kilitleniyor, sonraki
+         * kaydirma "calismiyor" gibi hissettiriyordu.
+         */
+        private const val RELOCK_MS = 120_000L
     }
 
     private enum class Mode { INFO, APPS, SYSTEM }
@@ -67,6 +71,7 @@ class LauncherActivity : Activity() {
         pager = Pager(this)
         pager.onLongPress = { unlock() }
         pager.onInteraction = { if (!locked) scheduleRelock() }
+        pager.onLockedTouch = { pager.currentPage?.flashLock() }
         pager.onSwipeUp = { onSwipeUp() }
         pager.onSwipeDown = { onSwipeDown() }
 
