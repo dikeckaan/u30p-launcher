@@ -41,6 +41,25 @@ object RootShell {
         }
     }
 
+    /**
+     * Komutu arka planda calistirir, sonucu ana thread'e dondurur.
+     *
+     * `exec` bloke okuma yapar; ana thread'den cagrilirsa `su` kabugu bir an
+     * takildiginda tum arayuz donar. Ana thread'deki her cagri bunu kullanmali.
+     */
+    fun async(cmd: String, onResult: (String?) -> Unit) {
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        worker.execute {
+            val out = exec(cmd)
+            main.post { onResult(out) }
+        }
+    }
+
+    private val worker: java.util.concurrent.ExecutorService =
+        java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "u30p-root").apply { isDaemon = true }
+        }
+
     @Synchronized
     fun exec(cmd: String): String? {
         if (!ensure()) return null

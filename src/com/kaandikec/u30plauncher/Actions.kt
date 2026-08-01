@@ -13,17 +13,22 @@ import com.kaandikec.u30plauncher.source.RootShell
 object Actions {
     val TIMEOUTS = intArrayOf(15_000, 60_000, 300_000, Int.MAX_VALUE)
 
-    fun reboot(): Boolean = RootShell.exec("reboot") != null
+    // Hepsi asenkron: bloke root okumasi ana thread'de arayuzu dondurur.
 
-    fun airplaneOn(): Boolean =
-        RootShell.exec("cmd connectivity airplane-mode")?.contains("enabled") == true
+    fun rebootAsync() = RootShell.async("reboot") {}
 
-    fun setAirplane(on: Boolean): Boolean =
-        RootShell.exec("cmd connectivity airplane-mode " + if (on) "enable" else "disable") != null
+    fun setAirplaneAsync(on: Boolean) =
+        RootShell.async("cmd connectivity airplane-mode " + if (on) "enable" else "disable") {}
 
-    fun screenTimeout(): Int =
-        RootShell.exec("settings get system screen_off_timeout")?.trim()?.toIntOrNull() ?: 60_000
+    fun airplaneOnAsync(cb: (Boolean) -> Unit) =
+        RootShell.async("cmd connectivity airplane-mode") { cb(it?.contains("enabled") == true) }
 
-    fun setScreenTimeout(ms: Int): Boolean =
-        RootShell.exec("settings put system screen_off_timeout $ms") != null
+    fun screenTimeoutAsync(cb: (Int) -> Unit) =
+        RootShell.async("settings get system screen_off_timeout") {
+            cb(it?.trim()?.toIntOrNull() ?: 60_000)
+        }
+
+    fun setScreenTimeoutAsync(ms: Int) =
+        RootShell.async("settings put system screen_off_timeout $ms") {}
+
 }

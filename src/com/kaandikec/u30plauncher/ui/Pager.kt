@@ -249,13 +249,23 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
                 val dx = event.x - downX
                 val dy = event.y - downY
 
-                if (horizontal == true) {
+                // Hizli bir kaydirmada slop'u asan ACTION_MOVE hic gelmeyebilir;
+                // o durumda eksen burada, toplam mesafeden belirlenir. Aksi
+                // halde hareket sessizce yutulur ve ekran donmus gibi gorunur.
+                val axis = horizontal ?: if (
+                    Math.abs(dx) > slop || Math.abs(dy) > slop
+                ) Math.abs(dx) >= Math.abs(dy) else null
+
+                if (axis == true) {
                     settleHorizontal(dx)
                     page?.onRawTouch(cancelEvent(event))
                     return true
                 }
 
-                if (horizontal == false && !longPressFired &&
+                // Yatay surukleme yarim kaldiysa yerine otur
+                if (dragX != 0f) startSettle(0f)
+
+                if (axis == false && !longPressFired &&
                     Math.abs(dy) >= SWIPE_MIN
                 ) {
                     val consumedByPage = if (dy > 0) pageCanScrollDown else pageCanScrollUp

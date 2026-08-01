@@ -47,20 +47,26 @@ class WifiPage(ctx: Context) : PageView(ctx) {
     fun refreshState() {
         if (!snapshot.rootAvailable) return
         if (!loaded) {
-            val xml = RootShell.exec("cat $CONF 2>/dev/null")
-            if (xml != null && SoftApParser.parse(xml, ap)) loaded = true
+            RootShell.async("cat $CONF 2>/dev/null") { xml ->
+                if (xml != null && SoftApParser.parse(xml, ap)) loaded = true
+                invalidate()
+            }
         }
         refreshClients(force = true)
-        invalidate()
     }
 
+    /** Root okumasi asenkron: ana thread'de bloke okuma arayuzu dondururdu. */
     private fun refreshClients(force: Boolean) {
         if (!snapshot.rootAvailable) return
         val now = SystemClock.elapsedRealtime()
         if (!force && now - lastClientsAt < CLIENT_REFRESH_MS) return
         lastClientsAt = now
-        val arp = RootShell.exec("cat /proc/net/arp") ?: return
-        ArpParser.parse(arp, "br0", clients)
+        RootShell.async("cat /proc/net/arp") { arp ->
+            if (arp != null) {
+                ArpParser.parse(arp, "br0", clients)
+                invalidate()
+            }
+        }
     }
 
     override fun draw(c: Canvas, s: Snapshot) {

@@ -2,6 +2,7 @@ package com.kaandikec.u30plauncher
 
 import android.content.Context
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
 import com.kaandikec.u30plauncher.core.CellIdentity
@@ -40,7 +41,16 @@ class DataHub(ctx: Context) {
     private val net = NetSource()
     private val thermal = ThermalSource()
 
-    private val handler = Handler(Looper.getMainLooper())
+    /**
+     * Yoklama ve root komutlari ARKA PLANDA calisir.
+     *
+     * Once ana Looper'daydi; `RootShell` bloke okuma yaptigi icin `su` kabugu
+     * bir an takildiginda tum arayuz doniyordu. Snapshot uretimi burada olur,
+     * dinleyici ana thread'de cagrilir.
+     */
+    private var worker: HandlerThread? = null
+    private var work: Handler? = null
+    private val main = Handler(Looper.getMainLooper())
     private val cal: Calendar = Calendar.getInstance()
 
     private var listener: ((Snapshot) -> Unit)? = null
@@ -58,6 +68,8 @@ class DataHub(ctx: Context) {
     private val cell = CellIdentity()
     private var cellFromRoot = false
 
+    /** Calisma thread'inde yazilir, ana thread'de okunur. */
+    @Volatile
     var snapshot: Snapshot = Snapshot.EMPTY
         private set
 
@@ -67,7 +79,7 @@ class DataHub(ctx: Context) {
             net.sample(System.currentTimeMillis())
             refreshSlowIfDue()
             rebuild()
-            handler.postDelayed(this, prefs.refreshMs.toLong())
+            work?.postDelayed(this, prefs.refreshMs.toLong())
         }
     }
 
@@ -75,20 +87,32 @@ class DataHub(ctx: Context) {
         if (running) return
         running = true
         listener = l
-        battery.start(::rebuild)
-        telephony.start(::rebuild)
-        handler.post(tick)
+        val t = HandlerThread("u30p-data").apply { start() }
+        worker = t
+        work = Handler(t.looper)
+        // Kaynak geri cagrilari ana thread'e gelir; isi calisma thread'ine at
+        battery.start { work?.post(::rebuild) }
+        telephony.start { work?.post(::rebuild) }
+        work?.post(tick)
     }
 
     fun pause() {
         if (!running) return
         running = false
-        handler.removeCallbacks(tick)
         battery.stop()
         telephony.stop()
-        usageStore.save(usage)
-        RootShell.close()
         listener = null
+        val t = worker
+        val w = work
+        worker = null
+        work = null
+        w?.removeCallbacksAndMessages(null)
+        // Kapanis islerini de calisma thread'inde yap, sonra looper'i bitir
+        w?.post {
+            usageStore.save(usage)
+            RootShell.close()
+            t?.quitSafely()
+        }
     }
 
     /** Root gerektiren, yavas degisen alanlar; 5 sn'de bir okunur. */
@@ -173,7 +197,8 @@ class DataHub(ctx: Context) {
 
         if (next != snapshot) {
             snapshot = next
-            listener?.invoke(next)
+            val l = listener
+            if (l != null) main.post { if (running) l(next) }
         }
     }
 }

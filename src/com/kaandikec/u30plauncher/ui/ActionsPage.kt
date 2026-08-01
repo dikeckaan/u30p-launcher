@@ -44,9 +44,8 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     /** Kilit acildiginda cagrilir; root'a bir kez sorup durumu tazeler. */
     fun refreshState() {
         if (!snapshot.rootAvailable) return
-        timeoutMs = Actions.screenTimeout()
-        airplane = Actions.airplaneOn()
-        invalidate()
+        Actions.screenTimeoutAsync { timeoutMs = it; invalidate() }
+        Actions.airplaneOnAsync { airplane = it; invalidate() }
     }
 
     override fun draw(c: Canvas, s: Snapshot) {
@@ -116,12 +115,12 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
         when (row) {
             0 -> {
                 onActionDone?.invoke("Yeniden baslatiliyor")
-                Actions.reboot()
+                Actions.rebootAsync()
             }
             1 -> {
                 val target = !airplane
-                Actions.setAirplane(target)
                 airplane = target
+                Actions.setAirplaneAsync(target)
                 onActionDone?.invoke(if (target) "Veri kesildi" else "Veri acildi")
             }
         }
@@ -132,8 +131,8 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
         var idx = -1
         for (i in Actions.TIMEOUTS.indices) if (Actions.TIMEOUTS[i] == timeoutMs) idx = i
         val next = Actions.TIMEOUTS[(if (idx < 0) 1 else idx + 1) % Actions.TIMEOUTS.size]
-        Actions.setScreenTimeout(next)
         timeoutMs = next
+        Actions.setScreenTimeoutAsync(next)
         invalidate()
     }
 
