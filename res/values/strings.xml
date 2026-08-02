@@ -60,4 +60,13 @@
     <string name="off">Off</string>
     <string name="second_short">s</string>
     <string name="permission_missing">READ_PHONE_STATE not granted</string>
+    <string name="system_title">SYSTEM</string>
+    <string name="cpu">CPU</string>
+    <string name="ram">RAM</string>
+    <string name="memory">MEMORY</string>
+    <string name="storage">STORAGE</string>
+    <string name="uptime">UPTIME</string>
+    <string name="load">LOAD</string>
+    <string name="day_short">d</string>
+    <string name="setting_system_page">System page</string>
 </resources>

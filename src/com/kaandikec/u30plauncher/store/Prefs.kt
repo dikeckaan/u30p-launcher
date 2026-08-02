@@ -41,4 +41,8 @@ class Prefs(ctx: Context) {
     var engineeringPage: Boolean
         get() = sp.getBoolean("page_engineering", true)
         set(v) { sp.edit().putBoolean("page_engineering", v).apply() }
+
+    var systemPage: Boolean
+        get() = sp.getBoolean("page_system", true)
+        set(v) { sp.edit().putBoolean("page_system", v).apply() }
 }

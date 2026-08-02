@@ -41,6 +41,15 @@ data class Snapshot(
     /** Kalan dakika; sarjdayken veya hesaplanamiyorsa UNKNOWN */
     val batteryMinutesLeft: Int = UNKNOWN,
 
+    val cpuPercent: Int = UNKNOWN,
+    val ramUsedKb: Long = 0,
+    val ramTotalKb: Long = 0,
+    val storageUsedBytes: Long = 0,
+    val storageTotalBytes: Long = 0,
+    /** yuz kati: 1048 = 10.48 */
+    val loadAvgX100: Int = UNKNOWN,
+    val uptimeSec: Long = 0,
+
     val vpnUp: Boolean = false,
     /** -1 = bilinmiyor (root yok) */
     val clients: Int = -1,

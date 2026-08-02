@@ -50,4 +50,13 @@
     <string name="off">Kapalı</string>
     <string name="second_short">sn</string>
     <string name="permission_missing">READ_PHONE_STATE izni yok</string>
+    <string name="system_title">SİSTEM</string>
+    <string name="cpu">CPU</string>
+    <string name="ram">RAM</string>
+    <string name="memory">BELLEK</string>
+    <string name="storage">DEPOLAMA</string>
+    <string name="uptime">ÇALIŞMA</string>
+    <string name="load">YÜK</string>
+    <string name="day_short">g</string>
+    <string name="setting_system_page">Sistem sayfası</string>
 </resources>

@@ -13,6 +13,7 @@ import com.kaandikec.u30plauncher.ui.PageView
 import com.kaandikec.u30plauncher.ui.Pager
 import com.kaandikec.u30plauncher.ui.SettingsPage
 import com.kaandikec.u30plauncher.ui.StatusPage
+import com.kaandikec.u30plauncher.ui.SystemPage
 import com.kaandikec.u30plauncher.ui.WifiPage
 import com.kaandikec.u30plauncher.ui.theme.ArcTheme
 import com.kaandikec.u30plauncher.ui.theme.BalancedTheme
@@ -185,6 +186,7 @@ class LauncherActivity : Activity() {
         list.add(StatusPage(this) { themeFor(prefs.theme) })
         if (prefs.detailPage) list.add(DetailPage(this))
         if (prefs.engineeringPage) list.add(EngineeringPage(this))
+        if (prefs.systemPage) list.add(SystemPage(this))
         pager.setPages(list)
         pager.longPressEnabled = true
         pager.locked = locked

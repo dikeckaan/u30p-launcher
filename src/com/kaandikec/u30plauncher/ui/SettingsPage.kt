@@ -16,7 +16,7 @@ class SettingsPage(
 ) : PageView(ctx) {
 
     companion object {
-        private val ROW_Y = floatArrayOf(44f, 86f, 128f, 170f)
+        private val ROW_Y = floatArrayOf(38f, 74f, 110f, 146f, 182f)
         private const val ROW_HIT = 20f
     }
 
@@ -38,10 +38,10 @@ class SettingsPage(
             appendValue(sb, i)
             val w = Geom.textWidth(sb, value)
             Geom.textAt(c, sb, 196f - w, ROW_Y[i] + 1f, value)
-            if (i < ROW_Y.size - 1) Geom.hairline(c, ROW_Y[i] + 30f, 80f, hair)
+            if (i < ROW_Y.size - 1) Geom.hairline(c, ROW_Y[i] + 26f, 80f, hair)
         }
         if (!s.phonePermission) {
-            Geom.centerText(c, str(R.string.permission_missing), 210f, warn)
+            Geom.centerText(c, str(R.string.permission_missing), 216f, warn)
         }
     }
 
@@ -49,7 +49,8 @@ class SettingsPage(
         0 -> str(R.string.setting_theme)
         1 -> str(R.string.setting_refresh)
         2 -> str(R.string.setting_detail_page)
-        else -> str(R.string.setting_engineering_page)
+        3 -> str(R.string.setting_engineering_page)
+        else -> str(R.string.setting_system_page)
     }
 
     private fun appendValue(sb: StringBuilder, i: Int) {
@@ -73,7 +74,8 @@ class SettingsPage(
                 }
             }
             2 -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
-            else -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
+            3 -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
+            else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
         }
     }
 
@@ -99,7 +101,8 @@ class SettingsPage(
                 prefs.refreshMs = opts[(if (idx < 0) 1 else idx + 1) % opts.size]
             }
             2 -> prefs.detailPage = !prefs.detailPage
-            else -> prefs.engineeringPage = !prefs.engineeringPage
+            3 -> prefs.engineeringPage = !prefs.engineeringPage
+            else -> prefs.systemPage = !prefs.systemPage
         }
         invalidate()
         onChanged()

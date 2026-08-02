@@ -13,6 +13,7 @@ import com.kaandikec.u30plauncher.core.UsageCalc
 import com.kaandikec.u30plauncher.source.BatterySource
 import com.kaandikec.u30plauncher.source.NetSource
 import com.kaandikec.u30plauncher.source.RootShell
+import com.kaandikec.u30plauncher.source.SystemSource
 import com.kaandikec.u30plauncher.source.TelephonySource
 import com.kaandikec.u30plauncher.source.ThermalSource
 import com.kaandikec.u30plauncher.store.Prefs
@@ -41,6 +42,7 @@ class DataHub(ctx: Context) {
     private val telephony = TelephonySource(ctx)
     private val net = NetSource()
     private val thermal = ThermalSource()
+    private val system = SystemSource()
 
     /**
      * Yoklama ve root komutlari ARKA PLANDA calisir.
@@ -79,6 +81,7 @@ class DataHub(ctx: Context) {
             if (!running) return
             net.sample(SystemClock.elapsedRealtime())
             battery.poll()
+            system.sample()
             refreshSlowIfDue()
             rebuild()
             work?.postDelayed(this, prefs.refreshMs.toLong())
@@ -205,6 +208,15 @@ class DataHub(ctx: Context) {
             batteryCharging = battery.charging,
             batteryMinutesLeft = batteryMinutesLeft(),
             cpuTempC = thermal.readTenthsC(),
+            cpuPercent = system.cpuPercent,
+            ramUsedKb = system.ramUsedKb,
+            ramTotalKb = system.ramTotalKb,
+            storageUsedBytes = system.storageUsedBytes,
+            storageTotalBytes = system.storageTotalBytes,
+            loadAvgX100 = system.loadAvgX100,
+            // Saniye hassasiyeti yeterli; her tick degisip bosuna cizim
+            // tetiklememesi icin dakikaya yuvarlanmiyor ama zaten yavas degisir
+            uptimeSec = SystemClock.elapsedRealtime() / 1000,
             vpnUp = net.vpnUp,
             clients = clientsCached,
             clockMinuteOfDay = minute,

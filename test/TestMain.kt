@@ -13,5 +13,6 @@ fun main() {
     BatteryEstimateTest.run()
     TimeAverageTest.run()
     BatteryHistoryTest.run()
+    SystemParsersTest.run()
     exitProcess(TestSupport.report())
 }
