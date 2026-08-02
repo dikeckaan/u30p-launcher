@@ -69,4 +69,18 @@
     <string name="load">LOAD</string>
     <string name="day_short">d</string>
     <string name="setting_system_page">System page</string>
+    <string name="setting_language">Language</string>
+    <string name="lang_system">System</string>
+    <string name="lang_en">English</string>
+    <string name="lang_tr">Türkçe</string>
+    <string name="device_settings">Device settings</string>
+    <string name="setting_lock">Lock</string>
+    <string name="lock_hold">Hold</string>
+    <string name="lock_pattern">Pattern</string>
+    <string name="lock_pin">PIN</string>
+    <string name="unlock_title">UNLOCK</string>
+    <string name="lock_set_first">DRAW OR ENTER</string>
+    <string name="lock_set_repeat">REPEAT</string>
+    <string name="lock_wrong">try again</string>
+    <string name="lock_cancel_hint">back to cancel</string>
 </resources>

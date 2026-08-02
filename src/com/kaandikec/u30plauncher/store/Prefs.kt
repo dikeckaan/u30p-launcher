@@ -10,6 +10,18 @@ class Prefs(ctx: Context) {
         const val THEME_COUNT = 3
 
         val REFRESH_OPTIONS = intArrayOf(500, 1000, 2000, 5000)
+
+        /** Dil: sistem varsayilani, ya da acikca secilmis. */
+        const val LANG_SYSTEM = 0
+        const val LANG_EN = 1
+        const val LANG_TR = 2
+        const val LANG_COUNT = 3
+
+        /** Kilit acma yontemi. */
+        const val LOCK_HOLD = 0
+        const val LOCK_PATTERN = 1
+        const val LOCK_PIN = 2
+        const val LOCK_COUNT = 3
         const val NAME = "u30p"
     }
 
@@ -41,6 +53,29 @@ class Prefs(ctx: Context) {
     var engineeringPage: Boolean
         get() = sp.getBoolean("page_engineering", true)
         set(v) { sp.edit().putBoolean("page_engineering", v).apply() }
+
+    var language: Int
+        get() = sp.getInt("language", LANG_SYSTEM).coerceIn(0, LANG_COUNT - 1)
+        set(v) { sp.edit().putInt("language", v).apply() }
+
+    /**
+     * Dil degisiminden sonra ayarlar sayfasina donulsun mu?
+     *
+     * Dil degisimi Activity'yi yeniden olusturuyor; bayrak olmadan kullanici
+     * kilitli ana ekrana dusuyor ve ayarlarda kaldigi yeri kaybediyor.
+     */
+    var returnToSettings: Boolean
+        get() = sp.getBoolean("return_to_settings", false)
+        set(v) { sp.edit().putBoolean("return_to_settings", v).apply() }
+
+    var lockMode: Int
+        get() = sp.getInt("lock_mode", LOCK_HOLD).coerceIn(0, LOCK_COUNT - 1)
+        set(v) { sp.edit().putInt("lock_mode", v).apply() }
+
+    /** Desen/PIN'in SHA-256 ozeti; duz metin saklanmaz. */
+    var lockSecret: String
+        get() = sp.getString("lock_secret", "") ?: ""
+        set(v) { sp.edit().putString("lock_secret", v).apply() }
 
     var systemPage: Boolean
         get() = sp.getBoolean("page_system", true)

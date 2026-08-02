@@ -14,5 +14,6 @@ fun main() {
     TimeAverageTest.run()
     BatteryHistoryTest.run()
     SystemParsersTest.run()
+    LockSecretTest.run()
     exitProcess(TestSupport.report())
 }

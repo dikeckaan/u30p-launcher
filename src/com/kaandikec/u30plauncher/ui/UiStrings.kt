@@ -16,4 +16,6 @@ class UiStrings(ctx: Context) {
     val noPermission: String = ctx.getString(R.string.no_permission)
     val hourShort: String = ctx.getString(R.string.hour_short)
     val minuteShort: String = ctx.getString(R.string.minute_short)
+    val today: String = ctx.getString(R.string.today)
+    val thisMonth: String = ctx.getString(R.string.this_month)
 }

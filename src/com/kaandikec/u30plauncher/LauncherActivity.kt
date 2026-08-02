@@ -14,6 +14,8 @@ import com.kaandikec.u30plauncher.ui.Pager
 import com.kaandikec.u30plauncher.ui.SettingsPage
 import com.kaandikec.u30plauncher.ui.StatusPage
 import com.kaandikec.u30plauncher.ui.SystemPage
+import com.kaandikec.u30plauncher.ui.UnlockPage
+import com.kaandikec.u30plauncher.ui.Palette
 import com.kaandikec.u30plauncher.ui.WifiPage
 import com.kaandikec.u30plauncher.ui.theme.ArcTheme
 import com.kaandikec.u30plauncher.ui.theme.BalancedTheme
@@ -44,7 +46,7 @@ class LauncherActivity : Activity() {
         private const val RELOCK_MS = 120_000L
     }
 
-    private enum class Mode { INFO, APPS, SYSTEM }
+    private enum class Mode { INFO, APPS, SYSTEM, UNLOCK }
 
     private lateinit var prefs: Prefs
     private lateinit var hub: DataHub
@@ -53,6 +55,7 @@ class LauncherActivity : Activity() {
     private lateinit var appsPage: AppsPage
     private lateinit var wifiPage: WifiPage
     private lateinit var settingsPage: SettingsPage
+    private lateinit var unlockPage: UnlockPage
 
     /**
      * Ekran kapanir kapanmaz kilitle.
@@ -74,9 +77,31 @@ class LauncherActivity : Activity() {
     private var locked = true
     private var mode = Mode.INFO
 
+    /**
+     * Secilen dili uygular.
+     *
+     * Ayarlardaki dil secimi sistem dilini ezebilmeli; AndroidX olmadigi icin
+     * yerellestirilmis bir Context olusturup temel baglam olarak veriyoruz.
+     * "Sistem" secildiginde hicbir sey yapilmaz, Android kendi secer.
+     */
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val lang = Prefs(newBase).language
+        if (lang == Prefs.LANG_SYSTEM) {
+            super.attachBaseContext(newBase)
+            return
+        }
+        val locale = java.util.Locale(if (lang == Prefs.LANG_TR) "tr" else "en")
+        val cfg = android.content.res.Configuration(newBase.resources.configuration)
+        cfg.setLocale(locale)
+        super.attachBaseContext(newBase.createConfigurationContext(cfg))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CrashGuard.install(applicationContext)
+        // Tema penceresi arka plani koyu gri; cizimimiz gecikirse veya pencere
+        // odagi kaybederse o gri gorunuyordu. Siyaha sabitle.
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Palette.BG))
 
         prefs = Prefs(this)
         hub = DataHub(this)
@@ -85,16 +110,35 @@ class LauncherActivity : Activity() {
         actionsPage.onStockUiOpened = { prefs.stockUiOpen = true }
         appsPage = AppsPage(this)
         wifiPage = WifiPage(this)
-        settingsPage = SettingsPage(this, prefs) { scheduleRelock() }
+        settingsPage = SettingsPage(
+            this, prefs,
+            { scheduleRelock() },
+            { recreate() },
+            { showUnlock(enrol = true) }
+        )
+        unlockPage = UnlockPage(
+            this, prefs,
+            onUnlocked = { finishUnlock() },
+            onEnrolled = { showSystem(); pager.index = 2 },
+            onCancel = { if (locked) showInfo() else { showSystem(); pager.index = 2 } }
+        )
 
         pager = Pager(this)
-        pager.onLongPress = { unlock() }
+        pager.onLongPress = { requestUnlock() }
         pager.onInteraction = { if (!locked) scheduleRelock() }
         pager.onLockedTouch = { pager.currentPage?.flashLock() }
         pager.onSwipeUp = { onSwipeUp() }
         pager.onSwipeDown = { onSwipeDown() }
 
-        showInfo()
+        if (prefs.returnToSettings) {
+            // Dil degisiminden geri donduk: kullaniciyi biraktigi yere koy
+            prefs.returnToSettings = false
+            locked = false
+            showSystem()
+            pager.index = 2
+        } else {
+            showInfo()
+        }
         setContentView(pager)
 
         // Activity omru boyunca kayitli: baska uygulama ondeyken ekran
@@ -220,6 +264,7 @@ class LauncherActivity : Activity() {
             Mode.INFO -> if (!locked) showApps()
             Mode.SYSTEM -> showInfo()
             Mode.APPS -> {}
+            Mode.UNLOCK -> {}
         }
     }
 
@@ -229,10 +274,36 @@ class LauncherActivity : Activity() {
             // Pager yalnizca liste daha fazla kaydirilamiyorsa buraya gelir
             Mode.APPS -> showInfo()
             Mode.SYSTEM -> {}
+            Mode.UNLOCK -> {}
         }
     }
 
     // ------------------------------------------------------------ kilit
+
+    /** Kilit acma: yonteme gore ya dogrudan ac ya da meydan okumayi goster. */
+    private fun requestUnlock() {
+        if (!locked) return
+        if (prefs.lockMode == Prefs.LOCK_HOLD || prefs.lockSecret.isEmpty()) {
+            unlock()
+        } else {
+            showUnlock(enrol = false)
+        }
+    }
+
+    private fun showUnlock(enrol: Boolean) {
+        mode = Mode.UNLOCK
+        unlockPage.enrolling = enrol
+        unlockPage.update(hub.snapshot)
+        pager.setPages(listOf(unlockPage))
+        pager.locked = false
+        pager.longPressEnabled = false
+        scheduleRelock()
+    }
+
+    private fun finishUnlock() {
+        unlock()
+        showInfo()
+    }
 
     private fun unlock() {
         if (!locked) return

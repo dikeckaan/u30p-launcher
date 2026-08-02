@@ -59,4 +59,18 @@
     <string name="load">YÜK</string>
     <string name="day_short">g</string>
     <string name="setting_system_page">Sistem sayfası</string>
+    <string name="setting_language">Dil</string>
+    <string name="lang_system">Sistem</string>
+    <string name="lang_en">English</string>
+    <string name="lang_tr">Türkçe</string>
+    <string name="device_settings">Cihaz ayarları</string>
+    <string name="setting_lock">Kilit</string>
+    <string name="lock_hold">Basılı tut</string>
+    <string name="lock_pattern">Desen</string>
+    <string name="lock_pin">PIN</string>
+    <string name="unlock_title">KİLİDİ AÇ</string>
+    <string name="lock_set_first">ÇİZ VEYA GİR</string>
+    <string name="lock_set_repeat">TEKRARLA</string>
+    <string name="lock_wrong">tekrar dene</string>
+    <string name="lock_cancel_hint">iptal için geri</string>
 </resources>

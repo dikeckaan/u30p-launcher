@@ -1,108 +1,264 @@
 package com.kaandikec.u30plauncher.ui
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Canvas
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
 
-/** Ayarlar: satira dokunmak degeri siradaki secenege gecirir. */
+/**
+ * Ayarlar. Satira dokunmak degeri siradaki secenege gecirir.
+ *
+ * Liste kaydirilabilir: ayar sayisi buyudukce 240x240'a sigmiyor. Son satir
+ * cihazin kendi Ayarlar uygulamasini acar — launcher'da olmayan ZTE/Android
+ * ayarlari icin; yanindaki ok oraya gecilecegini gosterir.
+ */
 class SettingsPage(
     ctx: Context,
     private val prefs: Prefs,
-    private val onChanged: () -> Unit
+    private val onChanged: () -> Unit,
+    private val onLanguageChanged: () -> Unit,
+    private val onEnrolLock: () -> Unit
 ) : PageView(ctx) {
 
     companion object {
-        private val ROW_Y = floatArrayOf(38f, 74f, 110f, 146f, 182f)
-        private const val ROW_HIT = 20f
+        private const val ROW_H = 36f
+        private const val TOP = 34f
+        private const val VISIBLE_BOTTOM = 214f
+
+        private const val THEME = 0
+        private const val REFRESH = 1
+        private const val LANGUAGE = 2
+        private const val LOCK = 3
+        private const val DETAIL = 4
+        private const val ENGINEERING = 5
+        private const val SYSTEM = 6
+        private const val DEVICE_SETTINGS = 7
+        private const val ROW_COUNT = 8
     }
 
     private val title = ThemeUtil.text(10f, Palette.DIM2)
-    private val label = ThemeUtil.text(13f, Palette.FG)
-    private val value = ThemeUtil.text(12f, Palette.DIM)
+    private val label = ThemeUtil.text(12f, Palette.FG)
+    private val value = ThemeUtil.text(11f, Palette.DIM)
     private val warn = ThemeUtil.text(9f, Palette.WARN)
     private val hair = ThemeUtil.hairline(Palette.HAIRLINE)
+    private val marker = ThemeUtil.fill(Palette.DOWN)
+    private val chevron = ThemeUtil.stroke(Palette.DOWN, 2f)
+    private val highlight = ThemeUtil.fill(0x14FFFFFF)
     private val sb = StringBuilder(16)
+
+    private var scrollY = 0f
+    private var maxScroll = 0f
+    private var downY = 0f
+    private var downScroll = 0f
+    private var dragging = false
+    private var pressed = -1
+    private val slop = ViewConfiguration.get(ctx).scaledTouchSlop
 
     override val showDots: Boolean get() = false
     override val wantsRawTouch: Boolean get() = true
 
+    init {
+        val content = ROW_COUNT * ROW_H
+        val viewport = VISIBLE_BOTTOM - TOP
+        maxScroll = if (content > viewport) content - viewport else 0f
+    }
+
+    override fun canScrollVertically(fingerDown: Boolean): Boolean =
+        if (fingerDown) scrollY > 0.5f else scrollY < maxScroll - 0.5f
+
     override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, str(R.string.settings_title), 18f, title)
-        for (i in ROW_Y.indices) {
-            Geom.textAt(c, labelOf(i), 44f, ROW_Y[i], label)
-            sb.setLength(0)
-            appendValue(sb, i)
-            val w = Geom.textWidth(sb, value)
-            Geom.textAt(c, sb, 196f - w, ROW_Y[i] + 1f, value)
-            if (i < ROW_Y.size - 1) Geom.hairline(c, ROW_Y[i] + 26f, 80f, hair)
+        Geom.centerText(c, str(R.string.settings_title), 16f, title)
+        Geom.hairline(c, 30f, 60f, hair)
+
+        c.save()
+        c.clipRect(0f, TOP, Geom.W, VISIBLE_BOTTOM)
+        for (i in 0 until ROW_COUNT) {
+            val y = TOP + i * ROW_H - scrollY
+            if (y > VISIBLE_BOTTOM || y + ROW_H < TOP) continue
+            drawRow(c, i, y)
         }
+        c.restore()
+
+        drawScrollbar(c)
+
         if (!s.phonePermission) {
-            Geom.centerText(c, str(R.string.permission_missing), 216f, warn)
+            Geom.centerText(c, str(R.string.permission_missing), 220f, warn)
         }
     }
 
+    private fun drawRow(c: Canvas, i: Int, y: Float) {
+        if (i == pressed) {
+            c.drawRoundRect(34f, y + 1f, 206f, y + ROW_H - 4f, 8f, 8f, highlight)
+        }
+        Geom.textAt(c, labelOf(i), 44f, y + 8f, label)
+
+        if (i == DEVICE_SETTINGS) {
+            // Cihazin kendi ayarlarina gidilecegini gosteren ok
+            val ax = 190f
+            val ay = y + 15f
+            c.drawLine(ax - 4f, ay - 5f, ax + 1f, ay, chevron)
+            c.drawLine(ax + 1f, ay, ax - 4f, ay + 5f, chevron)
+            return
+        }
+
+        sb.setLength(0)
+        appendValue(sb, i)
+        val w = Geom.textWidth(sb, value)
+        Geom.textAt(c, sb, 196f - w, y + 9f, value)
+    }
+
+    private fun drawScrollbar(c: Canvas) {
+        if (maxScroll <= 0f) return
+        val trackTop = TOP + 2f
+        val trackH = (VISIBLE_BOTTOM - 2f) - trackTop
+        val viewport = VISIBLE_BOTTOM - TOP
+        val thumbH = (trackH * viewport / (ROW_COUNT * ROW_H)).coerceAtLeast(12f)
+        val top = trackTop + (trackH - thumbH) * (scrollY / maxScroll)
+        c.drawRoundRect(214f, top, 217f, top + thumbH, 1.5f, 1.5f, marker)
+    }
+
     private fun labelOf(i: Int): String = when (i) {
-        0 -> str(R.string.setting_theme)
-        1 -> str(R.string.setting_refresh)
-        2 -> str(R.string.setting_detail_page)
-        3 -> str(R.string.setting_engineering_page)
-        else -> str(R.string.setting_system_page)
+        THEME -> str(R.string.setting_theme)
+        REFRESH -> str(R.string.setting_refresh)
+        LANGUAGE -> str(R.string.setting_language)
+        LOCK -> str(R.string.setting_lock)
+        DETAIL -> str(R.string.setting_detail_page)
+        ENGINEERING -> str(R.string.setting_engineering_page)
+        SYSTEM -> str(R.string.setting_system_page)
+        else -> str(R.string.device_settings)
     }
 
     private fun appendValue(sb: StringBuilder, i: Int) {
         when (i) {
-            0 -> sb.append(
+            THEME -> sb.append(
                 when (prefs.theme) {
                     Prefs.THEME_ARC -> "Arc"
                     Prefs.THEME_BALANCED -> "Balanced"
                     else -> "Stacked"
                 }
             )
-            1 -> {
+            REFRESH -> {
                 val ms = prefs.refreshMs
                 if (ms < 1000) {
                     sb.append("0.")
                     sb.append(ms / 100)
-                    sb.append(' '); sb.append(str(R.string.second_short))
                 } else {
                     sb.append(ms / 1000)
-                    sb.append(' '); sb.append(str(R.string.second_short))
                 }
+                sb.append(' ')
+                sb.append(str(R.string.second_short))
             }
-            2 -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
-            3 -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
+            LANGUAGE -> sb.append(
+                when (prefs.language) {
+                    Prefs.LANG_EN -> str(R.string.lang_en)
+                    Prefs.LANG_TR -> str(R.string.lang_tr)
+                    else -> str(R.string.lang_system)
+                }
+            )
+            LOCK -> sb.append(
+                when (prefs.lockMode) {
+                    Prefs.LOCK_PATTERN -> str(R.string.lock_pattern)
+                    Prefs.LOCK_PIN -> str(R.string.lock_pin)
+                    else -> str(R.string.lock_hold)
+                }
+            )
+            DETAIL -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
+            ENGINEERING -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
             else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
         }
     }
 
-    private var downY = 0f
+    private fun rowAt(y: Float): Int {
+        if (y < TOP || y > VISIBLE_BOTTOM) return -1
+        val idx = ((y - TOP + scrollY) / ROW_H).toInt()
+        return if (idx in 0 until ROW_COUNT) idx else -1
+    }
 
     override fun onRawTouch(event: MotionEvent) {
-        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-            downY = event.y
-            return
-        }
-        if (event.actionMasked != MotionEvent.ACTION_UP) return
-        var row = -1
-        for (i in ROW_Y.indices) if (Math.abs(event.y - (ROW_Y[i] + 8f)) < ROW_HIT) row = i
-        // Dokunusun basi ve sonu ayni satirda olmali
-        if (row < 0 || Math.abs(downY - event.y) > ROW_HIT) return
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downY = event.y
+                downScroll = scrollY
+                dragging = false
+                pressed = rowAt(event.y)
+                invalidate()
+            }
 
+            MotionEvent.ACTION_MOVE -> {
+                val dy = event.y - downY
+                if (!dragging && Math.abs(dy) > slop) {
+                    dragging = true
+                    pressed = -1
+                }
+                if (dragging) {
+                    scrollY = (downScroll - dy).coerceIn(0f, maxScroll)
+                    invalidate()
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (!dragging && pressed >= 0 && pressed == rowAt(event.y)) {
+                    activate(pressed)
+                }
+                pressed = -1
+                dragging = false
+                invalidate()
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                pressed = -1
+                dragging = false
+                invalidate()
+            }
+        }
+    }
+
+    private fun activate(row: Int) {
         when (row) {
-            0 -> prefs.theme = (prefs.theme + 1) % Prefs.THEME_COUNT
-            1 -> {
+            THEME -> prefs.theme = (prefs.theme + 1) % Prefs.THEME_COUNT
+            REFRESH -> {
                 val opts = Prefs.REFRESH_OPTIONS
                 var idx = -1
                 for (i in opts.indices) if (opts[i] == prefs.refreshMs) idx = i
                 prefs.refreshMs = opts[(if (idx < 0) 1 else idx + 1) % opts.size]
             }
-            2 -> prefs.detailPage = !prefs.detailPage
-            3 -> prefs.engineeringPage = !prefs.engineeringPage
-            else -> prefs.systemPage = !prefs.systemPage
+            LANGUAGE -> {
+                prefs.language = (prefs.language + 1) % Prefs.LANG_COUNT
+                prefs.returnToSettings = true
+                // Yerellestirilmis Context Activity olusurken kuruluyor;
+                // degisikligin gorunmesi icin yeniden olusturulmasi gerek.
+                onLanguageChanged()
+                return
+            }
+            LOCK -> {
+                val next = (prefs.lockMode + 1) % Prefs.LOCK_COUNT
+                prefs.lockMode = next
+                // Desen/PIN secildiyse sirri belirlemek gerek
+                if (next != Prefs.LOCK_HOLD) {
+                    prefs.lockSecret = ""
+                    onEnrolLock()
+                    return
+                }
+                prefs.lockSecret = ""
+            }
+            DETAIL -> prefs.detailPage = !prefs.detailPage
+            ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage
+            SYSTEM -> prefs.systemPage = !prefs.systemPage
+            DEVICE_SETTINGS -> {
+                try {
+                    context.startActivity(
+                        Intent(android.provider.Settings.ACTION_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                } catch (_: Throwable) {
+                }
+                return
+            }
         }
         invalidate()
         onChanged()
