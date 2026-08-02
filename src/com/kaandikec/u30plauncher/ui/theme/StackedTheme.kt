@@ -6,6 +6,7 @@ import com.kaandikec.u30plauncher.core.Fmt
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.ui.Geom
 import com.kaandikec.u30plauncher.ui.Palette
+import com.kaandikec.u30plauncher.ui.UiStrings
 
 /**
  * Varsayilan tema: sussuz bes satir, mumkun olan en buyuk tipografi.
@@ -30,13 +31,13 @@ object StackedTheme : Theme {
     private val pctPaint = ThemeUtil.text(12f, Palette.FG)
     private val estPaint = ThemeUtil.text(10f, Palette.DIM)
 
-    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder) {
+    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder, t: UiStrings) {
         sb.setLength(0)
         ThemeUtil.appendClock(sb, s.clockMinuteOfDay)
         Geom.centerText(c, sb, 26f, clock)
 
         sb.setLength(0)
-        ThemeUtil.appendOperator(sb, s)
+        ThemeUtil.appendOperator(sb, s, t)
         Geom.centerText(c, sb, 48f, operator)
 
         // sinyal cubugu + teknoloji + RSRP tek satirda, birlikte ortalanir
@@ -57,7 +58,7 @@ object StackedTheme : Theme {
         drawSpeed(c, sb, 100f, s.rxSpeed, down, downUnit, true)
         drawSpeed(c, sb, 144f, s.txSpeed, up, upUnit, false)
 
-        drawBottomStrip(c, s, sb)
+        drawBottomStrip(c, s, sb, t)
     }
 
     /** ok + sayi + kendi birimi, birlikte ortalanir. */
@@ -86,8 +87,8 @@ object StackedTheme : Theme {
      * Once hepsi tek satirdaydi ve alttaki kilit gostergesiyle birlikte
      * sikisik duruyordu; yuzde ve kalan sure eklenince tek satira sigmiyordu.
      */
-    private fun drawBottomStrip(c: Canvas, s: Snapshot, sb: StringBuilder) {
-        drawBatteryRow(c, s, sb, 186f)
+    private fun drawBottomStrip(c: Canvas, s: Snapshot, sb: StringBuilder, t: UiStrings) {
+        drawBatteryRow(c, s, sb, 186f, t)
 
         val showVpn = s.vpnUp
         val showClients = s.clients > 0
@@ -112,9 +113,9 @@ object StackedTheme : Theme {
     }
 
     /** Pil ikonu + yuzde + kalan sure, birlikte ortalanir. */
-    private fun drawBatteryRow(c: Canvas, s: Snapshot, sb: StringBuilder, y: Float) {
+    private fun drawBatteryRow(c: Canvas, s: Snapshot, sb: StringBuilder, y: Float, t: UiStrings) {
         sb.setLength(0)
-        if (s.batteryPct == Snapshot.UNKNOWN) sb.append("—") else {
+        if (s.batteryPct == Snapshot.UNKNOWN) sb.append(t.unknown) else {
             sb.append(s.batteryPct)
             sb.append('%')
         }
@@ -122,9 +123,9 @@ object StackedTheme : Theme {
 
         // Kalan sure yalnizca desarjda anlamli; sarjdayken yerine sarj isareti
         val estimate = StringBuilder(8)
-        if (s.batteryCharging) estimate.append("şarjda")
+        if (s.batteryCharging) estimate.append(t.charging)
         else if (s.batteryMinutesLeft != Snapshot.UNKNOWN) {
-            Fmt.appendDuration(estimate, s.batteryMinutesLeft)
+            Fmt.appendDuration(estimate, s.batteryMinutesLeft, t.hourShort, t.minuteShort)
         }
         val estW = if (estimate.isEmpty()) 0f else Geom.textWidth(estimate, estPaint) + 8f
 

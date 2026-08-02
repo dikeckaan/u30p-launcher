@@ -3,6 +3,7 @@ package com.kaandikec.u30plauncher.ui
 import android.content.Context
 import android.graphics.Canvas
 import android.view.MotionEvent
+import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
@@ -30,7 +31,7 @@ class SettingsPage(
     override val wantsRawTouch: Boolean get() = true
 
     override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, "AYARLAR", 18f, title)
+        Geom.centerText(c, str(R.string.settings_title), 18f, title)
         for (i in ROW_Y.indices) {
             Geom.textAt(c, labelOf(i), 44f, ROW_Y[i], label)
             sb.setLength(0)
@@ -40,15 +41,15 @@ class SettingsPage(
             if (i < ROW_Y.size - 1) Geom.hairline(c, ROW_Y[i] + 30f, 80f, hair)
         }
         if (!s.phonePermission) {
-            Geom.centerText(c, "READ_PHONE_STATE izni yok", 210f, warn)
+            Geom.centerText(c, str(R.string.permission_missing), 210f, warn)
         }
     }
 
     private fun labelOf(i: Int): String = when (i) {
-        0 -> "Tema"
-        1 -> "Yenileme"
-        2 -> "Detay sayfası"
-        else -> "Mühendislik"
+        0 -> str(R.string.setting_theme)
+        1 -> str(R.string.setting_refresh)
+        2 -> str(R.string.setting_detail_page)
+        else -> str(R.string.setting_engineering_page)
     }
 
     private fun appendValue(sb: StringBuilder, i: Int) {
@@ -65,14 +66,14 @@ class SettingsPage(
                 if (ms < 1000) {
                     sb.append("0.")
                     sb.append(ms / 100)
-                    sb.append(" sn")
+                    sb.append(' '); sb.append(str(R.string.second_short))
                 } else {
                     sb.append(ms / 1000)
-                    sb.append(" sn")
+                    sb.append(' '); sb.append(str(R.string.second_short))
                 }
             }
-            2 -> sb.append(if (prefs.detailPage) "Açık" else "Kapalı")
-            else -> sb.append(if (prefs.engineeringPage) "Açık" else "Kapalı")
+            2 -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
+            else -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
         }
     }
 

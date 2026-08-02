@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import com.kaandikec.u30plauncher.core.Snapshot
+import com.kaandikec.u30plauncher.core.TimeAverage
 
 /**
  * `ACTION_BATTERY_CHANGED` sticky broadcast — yoklama yok, olay geldiginde
@@ -25,9 +26,9 @@ class BatterySource(private val ctx: Context) {
     var charging: Boolean = false
         private set
 
-    private val currentRing = IntArray(16)
-    private var currentCount = 0
-    private var currentHead = 0
+    /** 5 dakikalik zaman sabiti; ham akim kalan sureyi surekli ziplatiyordu. */
+    private val currentAvg = TimeAverage()
+    private var lastPollAt = 0L
 
     /** ondabir °C */
     var tempC: Int = Snapshot.UNKNOWN
@@ -65,12 +66,10 @@ class BatterySource(private val ctx: Context) {
 
         try {
             val now = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
-            currentRing[currentHead] = now
-            currentHead = (currentHead + 1) % currentRing.size
-            if (currentCount < currentRing.size) currentCount++
-            var sum = 0L
-            for (k in 0 until currentCount) sum += currentRing[k]
-            currentUa = (sum / currentCount).toInt()
+            val t = android.os.SystemClock.elapsedRealtime()
+            currentAvg.add(now, if (lastPollAt == 0L) 0L else t - lastPollAt)
+            lastPollAt = t
+            currentUa = currentAvg.value()
         } catch (_: Throwable) {
         }
 

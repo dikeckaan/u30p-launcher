@@ -81,22 +81,25 @@ object Fmt {
      * 240x240'ta yer dar oldugu icin tek birim kullanilir; bir saatin altinda
      * dakika, uzerinde ondalikli saat.
      */
-    fun appendDuration(sb: StringBuilder, minutes: Int) {
+    fun appendDuration(sb: StringBuilder, minutes: Int, hourSuffix: String, minuteSuffix: String) {
         if (minutes < 60) {
             sb.append(minutes)
-            sb.append(" dk")
+            sb.append(' ')
+            sb.append(minuteSuffix)
             return
         }
         val h = minutes / 60
         if (h >= 10) {
             sb.append(h)
-            sb.append(" sa")
+            sb.append(' ')
+            sb.append(hourSuffix)
             return
         }
         sb.append(h)
         sb.append('.')
         sb.append((minutes % 60) * 10 / 60)
-        sb.append(" sa")
+        sb.append(' ')
+        sb.append(hourSuffix)
     }
 
     // --- yalnizca test icin ---
@@ -107,6 +110,6 @@ object Fmt {
 
     fun speed(bytesPerSec: Long): String = speedValueOf(bytesPerSec) + " " + speedUnit(bytesPerSec)
 
-    fun duration(minutes: Int): String =
-        StringBuilder().also { appendDuration(it, minutes) }.toString()
+    fun duration(minutes: Int, hourSuffix: String = "sa", minuteSuffix: String = "dk"): String =
+        StringBuilder().also { appendDuration(it, minutes, hourSuffix, minuteSuffix) }.toString()
 }

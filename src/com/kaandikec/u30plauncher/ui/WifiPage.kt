@@ -7,6 +7,7 @@ import com.kaandikec.u30plauncher.core.ArpParser
 import com.kaandikec.u30plauncher.core.Client
 import com.kaandikec.u30plauncher.core.SoftApInfo
 import com.kaandikec.u30plauncher.core.SoftApParser
+import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.source.RootShell
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
@@ -70,30 +71,31 @@ class WifiPage(ctx: Context) : PageView(ctx) {
     }
 
     override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, "WIFI", 18f, title)
+        Geom.centerText(c, str(R.string.wifi_title), 18f, title)
         Geom.hairline(c, 32f, 40f, hair)
 
         if (!s.rootAvailable) {
-            Geom.centerText(c, "root yok", 110f, hint)
+            Geom.centerText(c, str(R.string.no_root), 110f, hint)
             return
         }
         if (!loaded) {
-            Geom.centerText(c, "okunamadı", 110f, hint)
+            Geom.centerText(c, str(R.string.wifi_unreadable), 110f, hint)
             return
         }
 
         refreshClients(force = false)
 
-        Geom.centerText(c, "AĞ", 44f, label)
+        Geom.centerText(c, str(R.string.wifi_network), 44f, label)
         Geom.centerText(c, ap.ssid, 56f, ssidPaint)
 
-        Geom.centerText(c, "PAROLA", 84f, label)
+        Geom.centerText(c, str(R.string.wifi_password), 84f, label)
         Geom.centerText(c, ap.passphrase, 96f, passPaint)
 
         Geom.hairline(c, 124f, 74f, hair)
 
         sb.setLength(0)
-        sb.append("BAĞLI  ")
+        sb.append(str(R.string.wifi_connected_count))
+        sb.append("  ")
         sb.append(clients.size)
         if (ap.maxClients != Snapshot.UNKNOWN) {
             sb.append(" / ")
@@ -111,7 +113,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
             shown++
         }
         if (clients.isEmpty()) {
-            Geom.centerText(c, "istemci yok", 152f, hint)
+            Geom.centerText(c, str(R.string.wifi_no_clients), 152f, hint)
         }
     }
 }

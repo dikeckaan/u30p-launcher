@@ -22,9 +22,29 @@ if [ -f "$OUT/.keep/debug.keystore" ]; then
     cp "$OUT/.keep/debug.keystore" "$KS"
 fi
 
+echo "==> aapt2 compile (kaynaklar)"
+mkdir -p "$OUT/gen"
+"$BT/aapt2" compile --dir res -o "$OUT/res.zip"
+
+echo "==> aapt2 link (R uretimi)"
+"$BT/aapt2" link \
+    --manifest AndroidManifest.xml \
+    -I "$PLATFORM" \
+    --min-sdk-version 33 --target-sdk-version 35 \
+    --java "$OUT/gen" \
+    -o "$OUT/base.apk" \
+    "$OUT/res.zip"
+
+echo "==> javac (R sinifi)"
+# R.java Java'dir; kotlinc derleyemez. Once javac ile derleyip Kotlin'e
+# classpath olarak veriyoruz. R yalnizca int sabitleri icerir, android.jar'a
+# ihtiyaci yok; --release ile eski bytecode uretiyoruz ki d8 kabul etsin.
+find "$OUT/gen" -name 'R.java' > "$OUT/rjava.txt"
+javac -nowarn --release 11 -d "$OUT/classes" @"$OUT/rjava.txt"
+
 echo "==> kotlinc"
 find src -name '*.kt' > "$OUT/sources.txt"
-kotlinc -nowarn -jvm-target 11 -classpath "$PLATFORM" \
+kotlinc -nowarn -jvm-target 11 -classpath "$PLATFORM:$OUT/classes" \
         -d "$OUT/classes" @"$OUT/sources.txt"
 
 echo "==> R8"
@@ -35,13 +55,6 @@ java -cp "$BT/lib/d8.jar" com.android.tools.r8.R8 \
      --pg-conf proguard.txt \
      --output "$OUT/dex" \
      @"$OUT/classes.txt" "$STDLIB"
-
-echo "==> aapt2 link"
-"$BT/aapt2" link \
-    --manifest AndroidManifest.xml \
-    -I "$PLATFORM" \
-    --min-sdk-version 33 --target-sdk-version 35 \
-    -o "$OUT/base.apk"
 
 echo "==> add dex"
 (cd "$OUT/dex" && zip -q -X "../base.apk" classes*.dex)

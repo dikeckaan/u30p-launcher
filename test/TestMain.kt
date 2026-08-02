@@ -11,5 +11,6 @@ fun main() {
     WifiInfoParserTest.run()
     RateWindowTest.run()
     BatteryEstimateTest.run()
+    TimeAverageTest.run()
     exitProcess(TestSupport.report())
 }

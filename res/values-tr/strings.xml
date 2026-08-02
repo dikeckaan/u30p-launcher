@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="unknown">—</string>
+    <string name="no_root">root yok</string>
+    <string name="no_sim">SIM yok</string>
+    <string name="no_permission">izin yok</string>
+
+    <string name="charging">şarjda</string>
+    <string name="hour_short">sa</string>
+    <string name="minute_short">dk</string>
+
+    <string name="detail_title">DETAY</string>
+    <string name="today">BUGÜN</string>
+    <string name="this_month">BU AY</string>
+    <string name="clients">İSTEMCİ</string>
+    <string name="vpn">VPN</string>
+    <string name="connected">Bağlı</string>
+    <string name="disconnected">Kapalı</string>
+    <string name="soc_temp">SOC</string>
+    <string name="battery_temp">PİL</string>
+
+    <string name="actions_title">AKSİYONLAR</string>
+    <string name="action_reboot">Yeniden başlat</string>
+    <string name="action_data_off">Veri kes</string>
+    <string name="action_data_on">Veriyi aç</string>
+    <string name="action_screen">Ekran:</string>
+    <string name="screen_never">kapanmaz</string>
+    <string name="hold_hint">1 sn basılı tut</string>
+    <string name="rebooting">Yeniden başlatılıyor</string>
+    <string name="data_cut">Veri kesildi</string>
+    <string name="data_restored">Veri açıldı</string>
+
+    <string name="apps_title">UYGULAMALAR</string>
+    <string name="apps_empty">liste boş</string>
+
+    <string name="wifi_title">WIFI</string>
+    <string name="wifi_network">AĞ</string>
+    <string name="wifi_password">PAROLA</string>
+    <string name="wifi_connected_count">BAĞLI</string>
+    <string name="wifi_no_clients">istemci yok</string>
+    <string name="wifi_unreadable">okunamadı</string>
+
+    <string name="settings_title">AYARLAR</string>
+    <string name="setting_theme">Tema</string>
+    <string name="setting_refresh">Yenileme</string>
+    <string name="setting_detail_page">Detay sayfası</string>
+    <string name="setting_engineering_page">Mühendislik</string>
+    <string name="on">Açık</string>
+    <string name="off">Kapalı</string>
+    <string name="second_short">sn</string>
+    <string name="permission_missing">READ_PHONE_STATE izni yok</string>
+</resources>

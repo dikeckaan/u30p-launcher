@@ -11,7 +11,7 @@ import com.kaandikec.u30plauncher.core.Snapshot
  * kendi StringBuilder'ini ayirmaz.
  */
 interface Theme {
-    fun draw(c: Canvas, s: Snapshot, sb: StringBuilder)
+    fun draw(c: Canvas, s: Snapshot, sb: StringBuilder, t: com.kaandikec.u30plauncher.ui.UiStrings)
 }
 
 /** Temalarin paylastigi Paint fabrikalari ve ortak metin parcalari. */
@@ -49,10 +49,10 @@ object ThemeUtil {
     }
 
     /** Operator adi, yoksa aciklayici metin. */
-    fun appendOperator(sb: StringBuilder, s: Snapshot) {
+    fun appendOperator(sb: StringBuilder, s: Snapshot, t: com.kaandikec.u30plauncher.ui.UiStrings) {
         if (s.operator.isNotEmpty()) sb.append(s.operator)
-        else if (!s.phonePermission) sb.append("izin yok")
-        else sb.append("SIM yok")
+        else if (!s.phonePermission) sb.append(t.noPermission)
+        else sb.append(t.noSim)
     }
 
     fun appendOrDash(sb: StringBuilder, v: Int) {

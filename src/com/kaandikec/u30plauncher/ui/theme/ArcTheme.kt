@@ -5,6 +5,7 @@ import com.kaandikec.u30plauncher.core.Fmt
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.ui.Geom
 import com.kaandikec.u30plauncher.ui.Palette
+import com.kaandikec.u30plauncher.ui.UiStrings
 
 /**
  * Cemberi sinyal gostergesi olarak kullanir; hero anlik indirme hizidir.
@@ -31,13 +32,13 @@ object ArcTheme : Theme {
     private val battOutline = ThemeUtil.stroke(Palette.DIM, 1f)
     private val battFill = ThemeUtil.fill(Palette.DOWN)
 
-    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder) {
+    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder, t: UiStrings) {
         Geom.arcRing(c, 118f, 5f, 225f, 270f, track)
         val f = (s.signalLevel.coerceIn(0, 4)) / 4f
         Geom.arcRing(c, 118f, 5f, 225f, 270f * f, level)
 
         sb.setLength(0)
-        ThemeUtil.appendOperator(sb, s)
+        ThemeUtil.appendOperator(sb, s, t)
         Geom.centerText(c, sb, 30f, operator)
 
         sb.setLength(0)

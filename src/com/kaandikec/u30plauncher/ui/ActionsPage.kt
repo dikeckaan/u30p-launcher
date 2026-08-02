@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.os.SystemClock
 import android.view.MotionEvent
 import com.kaandikec.u30plauncher.Actions
+import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
 
@@ -49,7 +50,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     }
 
     override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, "AKSİYONLAR", 20f, titlePaint)
+        Geom.centerText(c, str(R.string.actions_title), 20f, titlePaint)
 
         for (i in 0 until 3) {
             bullet.color = if (s.rootAvailable) rowColor[i] else Palette.DIM2
@@ -61,7 +62,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
         }
 
         if (!s.rootAvailable) {
-            Geom.centerText(c, "root yok", 200f, hintPaint)
+            Geom.centerText(c, str(R.string.no_root), 200f, hintPaint)
             return
         }
 
@@ -72,16 +73,17 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
             Geom.arcRing(c, 116f, 3f, 0f, 360f * f, progress)
             if (f >= 1f) fire(holdingRow) else postInvalidateOnAnimation()
         } else {
-            Geom.centerText(c, "1 sn basılı tut", 206f, hintPaint)
+            Geom.centerText(c, str(R.string.hold_hint), 206f, hintPaint)
         }
     }
 
     private fun appendRowLabel(sb: StringBuilder, i: Int) {
         when (i) {
-            0 -> sb.append("Yeniden başlat")
+            0 -> sb.append(str(R.string.action_reboot))
             1 -> sb.append(if (airplane) "Veriyi ac" else "Veri kes")
             else -> {
-                sb.append("Ekran: ")
+                sb.append(str(R.string.action_screen))
+                sb.append(' ')
                 appendTimeout(sb, timeoutMs)
             }
         }
@@ -94,18 +96,18 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
      */
     private fun appendTimeout(sb: StringBuilder, ms: Int) {
         when {
-            ms == Int.MAX_VALUE || ms <= 0 -> sb.append("kapanmaz")
+            ms == Int.MAX_VALUE || ms <= 0 -> sb.append(str(R.string.screen_never))
             ms < 60_000 -> {
                 sb.append(ms / 1000)
-                sb.append(" sn")
+                sb.append(' '); sb.append(str(R.string.second_short))
             }
             ms < 3_600_000 -> {
                 sb.append(ms / 60_000)
-                sb.append(" dk")
+                sb.append(' '); sb.append(str(R.string.minute_short))
             }
             else -> {
                 sb.append(ms / 3_600_000)
-                sb.append(" sa")
+                sb.append(' '); sb.append(str(R.string.hour_short))
             }
         }
     }
@@ -121,7 +123,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
                 val target = !airplane
                 airplane = target
                 Actions.setAirplaneAsync(target)
-                onActionDone?.invoke(if (target) "Veri kesildi" else "Veri acildi")
+                onActionDone?.invoke(if (target) str(R.string.data_cut) else "Veri acildi")
             }
         }
         invalidate()

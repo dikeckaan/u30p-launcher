@@ -9,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.store.AppUsage
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
@@ -139,7 +140,7 @@ class AppsPage(ctx: Context) : PageView(ctx) {
 
     override fun draw(c: Canvas, s: Snapshot) {
         if (labels.isEmpty()) {
-            Geom.centerText(c, "liste boş", 110f, hint)
+            Geom.centerText(c, str(R.string.apps_empty), 110f, hint)
             return
         }
 

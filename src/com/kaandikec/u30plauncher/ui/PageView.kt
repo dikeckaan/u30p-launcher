@@ -85,6 +85,14 @@ abstract class PageView(ctx: Context) : View(ctx) {
      */
     open val wantsRawTouch: Boolean get() = false
 
+    /**
+     * Cihaz diline gore metin.
+     *
+     * Tum kullaniciya gorunen metinler `res/values/` altindaki strings.xml
+     * dosyalarinda; Android cihazin diline gore dogru olani secer.
+     */
+    protected fun str(id: Int): String = context.getString(id)
+
     /** Pager tarafindan iletilen ham dokunma. Varsayilan: yok say. */
     open fun onRawTouch(event: android.view.MotionEvent) {}
 

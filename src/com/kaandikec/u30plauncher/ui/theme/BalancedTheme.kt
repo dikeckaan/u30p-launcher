@@ -5,6 +5,7 @@ import com.kaandikec.u30plauncher.core.Fmt
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.ui.Geom
 import com.kaandikec.u30plauncher.ui.Palette
+import com.kaandikec.u30plauncher.ui.UiStrings
 
 /**
  * Sekiz alan: saat ve pil ustte, operator ve sinyal ortada, trafik sayaclari
@@ -27,7 +28,7 @@ object BalancedTheme : Theme {
     private val battFill = ThemeUtil.fill(Palette.DOWN)
     private val hair = ThemeUtil.hairline(Palette.HAIRLINE)
 
-    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder) {
+    override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder, t: UiStrings) {
         // ust satir: dar bant, saat + pil birlikte ortalanir
         sb.setLength(0)
         ThemeUtil.appendClock(sb, s.clockMinuteOfDay)
@@ -38,7 +39,7 @@ object BalancedTheme : Theme {
         Geom.battery(c, x0 + tw + 10f, 23f, s.batteryPct, battOutline, battFill)
 
         sb.setLength(0)
-        ThemeUtil.appendOperator(sb, s)
+        ThemeUtil.appendOperator(sb, s, t)
         Geom.centerText(c, sb, 44f, operator)
 
         // sinyal + teknoloji + bant + RSRP
