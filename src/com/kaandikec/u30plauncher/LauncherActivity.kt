@@ -67,6 +67,7 @@ class LauncherActivity : Activity() {
     private var screenOffRegistered = false
     private var pausedAt = 0L
 
+
     private val relockHandler = Handler(Looper.getMainLooper())
     private val relock = Runnable { lock() }
     private var locked = true
@@ -80,6 +81,7 @@ class LauncherActivity : Activity() {
         hub = DataHub(this)
 
         actionsPage = ActionsPage(this)
+        actionsPage.onStockUiOpened = { prefs.stockUiOpen = true }
         appsPage = AppsPage(this)
         wifiPage = WifiPage(this)
         settingsPage = SettingsPage(this, prefs) { scheduleRelock() }
@@ -122,6 +124,12 @@ class LauncherActivity : Activity() {
             lock()
         }
         pausedAt = 0L
+        // Stok arayuz acilmissa tamamen kapat. Bayrak Prefs'te tutuluyor
+        // cunku bu Activity bu arada yok edilmis olabilir.
+        if (prefs.stockUiOpen) {
+            prefs.stockUiOpen = false
+            Actions.killStockUiAsync()
+        }
         if (!locked) scheduleRelock()
         hub.resume { pager.update(it) }
     }

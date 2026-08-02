@@ -30,6 +30,7 @@
     <string name="action_reboot">Reboot</string>
     <string name="action_data_off">Cut data</string>
     <string name="action_data_on">Restore data</string>
+    <string name="action_stock_ui">Stock UI</string>
     <string name="action_screen">Screen:</string>
     <string name="screen_never">never</string>
     <string name="hold_hint">hold 1 s</string>

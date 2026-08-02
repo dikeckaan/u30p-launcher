@@ -18,8 +18,8 @@ import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
 class ActionsPage(ctx: Context) : PageView(ctx) {
     companion object {
         private const val HOLD_MS = 1000L
-        private val ROW_Y = floatArrayOf(66f, 114f, 162f)
-        private const val ROW_HIT = 22f
+        private val ROW_Y = floatArrayOf(56f, 96f, 136f, 176f)
+        private const val ROW_HIT = 19f
     }
 
     private val titlePaint = ThemeUtil.text(10f, Palette.DIM2)
@@ -29,7 +29,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     private val progress = ThemeUtil.stroke(Palette.ERR, 3f).apply {
         strokeCap = android.graphics.Paint.Cap.ROUND
     }
-    private val rowColor = intArrayOf(Palette.ERR, Palette.WARN, Palette.UP)
+    private val rowColor = intArrayOf(Palette.ERR, Palette.WARN, Palette.UP, Palette.DIM)
     private val sb = StringBuilder(24)
 
     private var holdingRow = -1
@@ -52,7 +52,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     override fun draw(c: Canvas, s: Snapshot) {
         Geom.centerText(c, str(R.string.actions_title), 20f, titlePaint)
 
-        for (i in 0 until 3) {
+        for (i in ROW_Y.indices) {
             bullet.color = if (s.rootAvailable) rowColor[i] else Palette.DIM2
             c.drawCircle(52f, ROW_Y[i] + 2f, 8f, bullet)
             labelPaint.color = if (s.rootAvailable) Palette.FG else Palette.DIM2
@@ -62,7 +62,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
         }
 
         if (!s.rootAvailable) {
-            Geom.centerText(c, str(R.string.no_root), 200f, hintPaint)
+            Geom.centerText(c, str(R.string.no_root), 204f, hintPaint)
             return
         }
 
@@ -73,19 +73,20 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
             Geom.arcRing(c, 116f, 3f, 0f, 360f * f, progress)
             if (f >= 1f) fire(holdingRow) else postInvalidateOnAnimation()
         } else {
-            Geom.centerText(c, str(R.string.hold_hint), 206f, hintPaint)
+            Geom.centerText(c, str(R.string.hold_hint), 204f, hintPaint)
         }
     }
 
     private fun appendRowLabel(sb: StringBuilder, i: Int) {
         when (i) {
             0 -> sb.append(str(R.string.action_reboot))
-            1 -> sb.append(if (airplane) "Veriyi ac" else "Veri kes")
-            else -> {
+            1 -> sb.append(str(if (airplane) R.string.action_data_on else R.string.action_data_off))
+            2 -> {
                 sb.append(str(R.string.action_screen))
                 sb.append(' ')
                 appendTimeout(sb, timeoutMs)
             }
+            else -> sb.append(str(R.string.action_stock_ui))
         }
     }
 
@@ -123,11 +124,19 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
                 val target = !airplane
                 airplane = target
                 Actions.setAirplaneAsync(target)
-                onActionDone?.invoke(if (target) str(R.string.data_cut) else "Veri acildi")
+                onActionDone?.invoke(str(if (target) R.string.data_cut else R.string.data_restored))
             }
         }
         invalidate()
     }
+
+    /** Stok arayuzu ac; donuldugunde Activity onu kapatacak. */
+    private fun openStockUi() {
+        onStockUiOpened?.invoke()
+        Actions.openStockUiAsync()
+    }
+
+    var onStockUiOpened: (() -> Unit)? = null
 
     private fun cycleTimeout() {
         var idx = -1
@@ -139,7 +148,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     }
 
     private fun rowAt(y: Float): Int {
-        for (i in 0 until 3) if (Math.abs(y - ROW_Y[i]) < ROW_HIT) return i
+        for (i in ROW_Y.indices) if (Math.abs(y - ROW_Y[i]) < ROW_HIT) return i
         return -1
     }
 
@@ -151,8 +160,8 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
             MotionEvent.ACTION_DOWN -> {
                 downY = event.y
                 val row = rowAt(event.y)
-                // Ekran suresi zararsiz: tek dokunusla degisir, basili tutma istemez.
-                if (row >= 0 && row != 2) {
+                // Ekran suresi ve stok arayuz zararsiz: tek dokunus yeter.
+                if (row == 0 || row == 1) {
                     holdingRow = row
                     holdStart = SystemClock.uptimeMillis()
                     invalidate()
@@ -171,8 +180,12 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
                 if (holdingRow >= 0) {
                     holdingRow = -1
                     invalidate()
-                } else if (rowAt(event.y) == 2 && rowAt(downY) == 2) {
-                    cycleTimeout()
+                } else {
+                    val r = rowAt(event.y)
+                    if (r == rowAt(downY)) {
+                        if (r == 2) cycleTimeout()
+                        else if (r == 3) openStockUi()
+                    }
                 }
             }
 

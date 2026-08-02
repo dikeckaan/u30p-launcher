@@ -23,6 +23,7 @@
     <string name="action_reboot">Yeniden başlat</string>
     <string name="action_data_off">Veri kes</string>
     <string name="action_data_on">Veriyi aç</string>
+    <string name="action_stock_ui">Stok arayüz</string>
     <string name="action_screen">Ekran:</string>
     <string name="screen_never">kapanmaz</string>
     <string name="hold_hint">1 sn basılı tut</string>

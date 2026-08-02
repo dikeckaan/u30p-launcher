@@ -28,6 +28,24 @@ object Actions {
             cb(it?.trim()?.toIntOrNull() ?: 60_000)
         }
 
+    /**
+     * Stok ZTE arayuzunu acar.
+     *
+     * Paket normalde `pm disable-user` ile kapali tutuluyor (acilista home
+     * task'ini kapip bizi eziyordu), o yuzden once etkinlestirmek gerek.
+     * Varsayilan HOME degistirilmez; yalnizca aktivite baslatilir.
+     */
+    fun openStockUiAsync() = RootShell.async(
+        "pm enable $STOCK_PKG; am start -n $STOCK_PKG/.HomeMainActivity"
+    ) {}
+
+    /** Geri donuldugunde tamamen kapat: once oldur, sonra yeniden devre disi birak. */
+    fun killStockUiAsync() = RootShell.async(
+        "am force-stop $STOCK_PKG; pm disable-user --user 0 $STOCK_PKG"
+    ) {}
+
+    private const val STOCK_PKG = "com.zte.mifavor.ufi.home"
+
     fun setScreenTimeoutAsync(ms: Int) =
         RootShell.async("settings put system screen_off_timeout $ms") {}
 

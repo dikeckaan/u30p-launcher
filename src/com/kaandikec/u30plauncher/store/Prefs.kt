@@ -27,6 +27,17 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("page_detail", true)
         set(v) { sp.edit().putBoolean("page_detail", v).apply() }
 
+    /**
+     * Stok ZTE arayuzu bizim uzerimizden acildi mi?
+     *
+     * Kalici tutulmali: stok launcher one gelince Android bu Activity'yi yok
+     * ediyor ve geri donuldugunde yeni bir ornek basliyor — bellekteki bayrak
+     * kaybolup temizlik hic calismiyordu.
+     */
+    var stockUiOpen: Boolean
+        get() = sp.getBoolean("stock_ui_open", false)
+        set(v) { sp.edit().putBoolean("stock_ui_open", v).apply() }
+
     var engineeringPage: Boolean
         get() = sp.getBoolean("page_engineering", true)
         set(v) { sp.edit().putBoolean("page_engineering", v).apply() }
