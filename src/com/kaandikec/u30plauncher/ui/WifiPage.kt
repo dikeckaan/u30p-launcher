@@ -78,13 +78,13 @@ class WifiPage(ctx: Context) : PageView(ctx) {
             return
         }
         if (!loaded) {
-            Geom.centerText(c, "okunamadi", 110f, hint)
+            Geom.centerText(c, "okunamadı", 110f, hint)
             return
         }
 
         refreshClients(force = false)
 
-        Geom.centerText(c, "AG", 44f, label)
+        Geom.centerText(c, "AĞ", 44f, label)
         Geom.centerText(c, ap.ssid, 56f, ssidPaint)
 
         Geom.centerText(c, "PAROLA", 84f, label)
@@ -93,7 +93,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
         Geom.hairline(c, 124f, 74f, hair)
 
         sb.setLength(0)
-        sb.append("BAGLI  ")
+        sb.append("BAĞLI  ")
         sb.append(clients.size)
         if (ap.maxClients != Snapshot.UNKNOWN) {
             sb.append(" / ")

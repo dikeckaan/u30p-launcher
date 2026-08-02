@@ -10,5 +10,6 @@ fun main() {
     CellIdentityParserTest.run()
     WifiInfoParserTest.run()
     RateWindowTest.run()
+    BatteryEstimateTest.run()
     exitProcess(TestSupport.report())
 }

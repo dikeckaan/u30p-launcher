@@ -84,7 +84,7 @@ object BalancedTheme : Theme {
 
         sb.setLength(0)
         Fmt.appendBytes(sb, s.todayBytes)
-        Geom.kvCell(c, Geom.COL_L, 172f, "BUGUN", sb, label, value)
+        Geom.kvCell(c, Geom.COL_L, 172f, "BUGÜN", sb, label, value)
 
         sb.setLength(0)
         Fmt.appendBytes(sb, s.monthBytes)

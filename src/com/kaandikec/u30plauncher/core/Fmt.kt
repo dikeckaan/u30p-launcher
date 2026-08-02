@@ -75,6 +75,30 @@ object Fmt {
         return BIT_UNITS[unitIndexOf(bits, 1000.0, BIT_UNITS.size)]
     }
 
+    /**
+     * Kalan sureyi kisa yazar: "45 dk", "4.2 sa", "12 sa".
+     *
+     * 240x240'ta yer dar oldugu icin tek birim kullanilir; bir saatin altinda
+     * dakika, uzerinde ondalikli saat.
+     */
+    fun appendDuration(sb: StringBuilder, minutes: Int) {
+        if (minutes < 60) {
+            sb.append(minutes)
+            sb.append(" dk")
+            return
+        }
+        val h = minutes / 60
+        if (h >= 10) {
+            sb.append(h)
+            sb.append(" sa")
+            return
+        }
+        sb.append(h)
+        sb.append('.')
+        sb.append((minutes % 60) * 10 / 60)
+        sb.append(" sa")
+    }
+
     // --- yalnizca test icin ---
     fun bytes(b: Long): String = StringBuilder().also { appendBytes(it, b) }.toString()
 
@@ -82,4 +106,7 @@ object Fmt {
         StringBuilder().also { appendSpeedValue(it, bytesPerSec) }.toString()
 
     fun speed(bytesPerSec: Long): String = speedValueOf(bytesPerSec) + " " + speedUnit(bytesPerSec)
+
+    fun duration(minutes: Int): String =
+        StringBuilder().also { appendDuration(it, minutes) }.toString()
 }

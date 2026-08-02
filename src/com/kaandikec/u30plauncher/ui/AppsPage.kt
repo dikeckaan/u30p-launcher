@@ -139,7 +139,7 @@ class AppsPage(ctx: Context) : PageView(ctx) {
 
     override fun draw(c: Canvas, s: Snapshot) {
         if (labels.isEmpty()) {
-            Geom.centerText(c, "liste bos", 110f, hint)
+            Geom.centerText(c, "liste boş", 110f, hint)
             return
         }
 

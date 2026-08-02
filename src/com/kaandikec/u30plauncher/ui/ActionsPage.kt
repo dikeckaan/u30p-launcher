@@ -49,7 +49,7 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
     }
 
     override fun draw(c: Canvas, s: Snapshot) {
-        Geom.centerText(c, "AKSIYONLAR", 20f, titlePaint)
+        Geom.centerText(c, "AKSİYONLAR", 20f, titlePaint)
 
         for (i in 0 until 3) {
             bullet.color = if (s.rootAvailable) rowColor[i] else Palette.DIM2
@@ -72,13 +72,13 @@ class ActionsPage(ctx: Context) : PageView(ctx) {
             Geom.arcRing(c, 116f, 3f, 0f, 360f * f, progress)
             if (f >= 1f) fire(holdingRow) else postInvalidateOnAnimation()
         } else {
-            Geom.centerText(c, "1 sn basili tut", 206f, hintPaint)
+            Geom.centerText(c, "1 sn basılı tut", 206f, hintPaint)
         }
     }
 
     private fun appendRowLabel(sb: StringBuilder, i: Int) {
         when (i) {
-            0 -> sb.append("Yeniden baslat")
+            0 -> sb.append("Yeniden başlat")
             1 -> sb.append(if (airplane) "Veriyi ac" else "Veri kes")
             else -> {
                 sb.append("Ekran: ")

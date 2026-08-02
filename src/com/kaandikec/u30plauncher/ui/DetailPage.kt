@@ -21,7 +21,7 @@ class DetailPage(ctx: Context) : PageView(ctx) {
 
         sb.setLength(0)
         Fmt.appendBytes(sb, s.todayBytes)
-        Geom.kvCell(c, Geom.COL_L, 54f, "BUGUN", sb, label, value)
+        Geom.kvCell(c, Geom.COL_L, 54f, "BUGÜN", sb, label, value)
 
         sb.setLength(0)
         Fmt.appendBytes(sb, s.monthBytes)
@@ -29,11 +29,11 @@ class DetailPage(ctx: Context) : PageView(ctx) {
 
         sb.setLength(0)
         if (s.clients < 0) sb.append('—') else sb.append(s.clients)
-        Geom.kvCell(c, Geom.COL_L, 102f, "ISTEMCI", sb, label, value)
+        Geom.kvCell(c, Geom.COL_L, 102f, "İSTEMCİ", sb, label, value)
 
         Geom.centerText(c, "VPN", 102f, label, Geom.COL_R)
         Geom.centerText(
-            c, if (s.vpnUp) "Bagli" else "Kapali", 115f,
+            c, if (s.vpnUp) "Bağlı" else "Kapalı", 115f,
             if (s.vpnUp) valueGreen else value, Geom.COL_R
         )
 

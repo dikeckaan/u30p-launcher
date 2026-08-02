@@ -72,7 +72,7 @@ abstract class PageView(ctx: Context) : View(ctx) {
                 Geom.padlock(canvas, Geom.CX - size / 2f, 220f - size, size, lockPaint)
                 if (flashing) postInvalidateDelayed(60L)
             } else {
-                Geom.dots(canvas, pageCount, pageIndex, 222f, dotOn, dotOff)
+                Geom.dots(canvas, pageCount, pageIndex, 227f, dotOn, dotOff)
             }
         }
     }

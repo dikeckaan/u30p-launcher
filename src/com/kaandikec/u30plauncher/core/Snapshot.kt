@@ -37,6 +37,9 @@ data class Snapshot(
     /** ondabir °C: 350 = 35.0 °C */
     val batteryTempC: Int = UNKNOWN,
     val cpuTempC: Int = UNKNOWN,
+    val batteryCharging: Boolean = false,
+    /** Kalan dakika; sarjdayken veya hesaplanamiyorsa UNKNOWN */
+    val batteryMinutesLeft: Int = UNKNOWN,
 
     val vpnUp: Boolean = false,
     /** -1 = bilinmiyor (root yok) */

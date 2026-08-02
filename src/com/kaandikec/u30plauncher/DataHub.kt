@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
+import com.kaandikec.u30plauncher.core.BatteryEstimate
 import com.kaandikec.u30plauncher.core.CellIdentity
 import com.kaandikec.u30plauncher.core.CellIdentityParser
 import com.kaandikec.u30plauncher.core.Snapshot
@@ -77,6 +78,7 @@ class DataHub(ctx: Context) {
         override fun run() {
             if (!running) return
             net.sample(SystemClock.elapsedRealtime())
+            battery.poll()
             refreshSlowIfDue()
             rebuild()
             work?.postDelayed(this, prefs.refreshMs.toLong())
@@ -187,6 +189,8 @@ class DataHub(ctx: Context) {
             batteryPct = battery.pct,
             batteryUa = battery.currentUa,
             batteryTempC = battery.tempC,
+            batteryCharging = battery.charging,
+            batteryMinutesLeft = BatteryEstimate.minutesLeft(battery.chargeUah, battery.currentUa),
             cpuTempC = thermal.readTenthsC(),
             vpnUp = net.vpnUp,
             clients = clientsCached,

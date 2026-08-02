@@ -47,8 +47,8 @@ class SettingsPage(
     private fun labelOf(i: Int): String = when (i) {
         0 -> "Tema"
         1 -> "Yenileme"
-        2 -> "Detay sayfasi"
-        else -> "Muhendislik"
+        2 -> "Detay sayfası"
+        else -> "Mühendislik"
     }
 
     private fun appendValue(sb: StringBuilder, i: Int) {
@@ -71,8 +71,8 @@ class SettingsPage(
                     sb.append(" sn")
                 }
             }
-            2 -> sb.append(if (prefs.detailPage) "Acik" else "Kapali")
-            else -> sb.append(if (prefs.engineeringPage) "Acik" else "Kapali")
+            2 -> sb.append(if (prefs.detailPage) "Açık" else "Kapalı")
+            else -> sb.append(if (prefs.engineeringPage) "Açık" else "Kapalı")
         }
     }
 

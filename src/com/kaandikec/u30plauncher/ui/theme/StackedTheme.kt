@@ -27,6 +27,8 @@ object StackedTheme : Theme {
     private val battOutline = ThemeUtil.stroke(Palette.DIM, 1f)
     private val battFill = ThemeUtil.fill(Palette.DOWN)
     private val shieldPaint = ThemeUtil.fill(Palette.DOWN)
+    private val pctPaint = ThemeUtil.text(12f, Palette.FG)
+    private val estPaint = ThemeUtil.text(10f, Palette.DIM)
 
     override fun draw(c: Canvas, s: Snapshot, sb: StringBuilder) {
         sb.setLength(0)
@@ -52,8 +54,8 @@ object StackedTheme : Theme {
 
         // Her deger kendi birimini yaninda tasir: indirme bps iken yukleme
         // Mbps olabiliyor, tek ortak etiket ikisinden birini yanlis tanimlardi.
-        drawSpeed(c, sb, 106f, s.rxSpeed, down, downUnit, true)
-        drawSpeed(c, sb, 152f, s.txSpeed, up, upUnit, false)
+        drawSpeed(c, sb, 100f, s.rxSpeed, down, downUnit, true)
+        drawSpeed(c, sb, 144f, s.txSpeed, up, upUnit, false)
 
         drawBottomStrip(c, s, sb)
     }
@@ -76,28 +78,65 @@ object StackedTheme : Theme {
         Geom.textAt(c, unitText, x + 20f + numW + 5f, y + 17f, unitPaint)
     }
 
-    /** Pil her zaman; VPN yalnizca bagliyken; istemci yalnizca > 0 iken. */
+    /**
+     * Alt alan iki satir:
+     *   1) pil ikonu + yuzde + kalan sure
+     *   2) VPN kalkani + istemci sayisi (yalnizca varsa)
+     *
+     * Once hepsi tek satirdaydi ve alttaki kilit gostergesiyle birlikte
+     * sikisik duruyordu; yuzde ve kalan sure eklenince tek satira sigmiyordu.
+     */
     private fun drawBottomStrip(c: Canvas, s: Snapshot, sb: StringBuilder) {
-        val y = 202f
+        drawBatteryRow(c, s, sb, 186f)
+
         val showVpn = s.vpnUp
         val showClients = s.clients > 0
+        if (!showVpn && !showClients) return
 
-        var width = Geom.BATT_W + 8f
-        if (showVpn) width += 19f
-        if (showClients) width += 18f
-
+        var width = 0f
+        if (showVpn) width += 11f
+        if (showVpn && showClients) width += 7f
+        if (showClients) width += 9f
         var x = Geom.CX - width / 2f
-        battFill.color = Palette.batteryColor(s.batteryPct)
-        x += Geom.battery(c, x, y, s.batteryPct, battOutline, battFill) + 8f
+        val y = 206f
 
         if (showVpn) {
-            Geom.shield(c, x, y - 1f, 11f, shieldPaint)
-            x += 19f
+            Geom.shield(c, x, y, 11f, shieldPaint)
+            x += 18f
         }
         if (showClients) {
             sb.setLength(0)
             sb.append(s.clients)
             Geom.textAt(c, sb, x, y + 1f, small)
+        }
+    }
+
+    /** Pil ikonu + yuzde + kalan sure, birlikte ortalanir. */
+    private fun drawBatteryRow(c: Canvas, s: Snapshot, sb: StringBuilder, y: Float) {
+        sb.setLength(0)
+        if (s.batteryPct == Snapshot.UNKNOWN) sb.append("—") else {
+            sb.append(s.batteryPct)
+            sb.append('%')
+        }
+        val pctW = Geom.textWidth(sb, pctPaint)
+
+        // Kalan sure yalnizca desarjda anlamli; sarjdayken yerine sarj isareti
+        val estimate = StringBuilder(8)
+        if (s.batteryCharging) estimate.append("şarjda")
+        else if (s.batteryMinutesLeft != Snapshot.UNKNOWN) {
+            Fmt.appendDuration(estimate, s.batteryMinutesLeft)
+        }
+        val estW = if (estimate.isEmpty()) 0f else Geom.textWidth(estimate, estPaint) + 8f
+
+        val total = Geom.BATT_W + 5f + pctW + estW
+        var x = Geom.CX - total / 2f
+
+        battFill.color = Palette.batteryColor(s.batteryPct)
+        x += Geom.battery(c, x, y, s.batteryPct, battOutline, battFill) + 5f
+        Geom.textAt(c, sb, x, y - 1f, pctPaint)
+
+        if (estimate.isNotEmpty()) {
+            Geom.textAt(c, estimate, x + pctW + 8f, y + 1f, estPaint)
         }
     }
 }
