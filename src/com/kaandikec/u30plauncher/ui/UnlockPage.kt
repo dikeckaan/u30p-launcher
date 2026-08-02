@@ -29,7 +29,13 @@ class UnlockPage(
     companion object {
         private val GRID_X = floatArrayOf(70f, 120f, 170f)
         private val GRID_Y = floatArrayOf(78f, 128f, 178f)
-        private const val HIT = 26f
+        /**
+         * Nokta yakalama yaricapi. 26 px cok genisti: noktalar 50 px arali
+         * oldugu icin bolgeler birbirine deger ve izgaranin uzerinden gecen
+         * her hareket hucre yakalardi. 20 px, aralarinda 10 px'lik olu bant
+         * birakir.
+         */
+        private const val HIT = 20f
 
         private val KEY_X = floatArrayOf(64f, 120f, 176f)
         private val KEY_Y = floatArrayOf(74f, 118f, 162f, 202f)
@@ -154,8 +160,14 @@ class UnlockPage(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 cells.clear()
-                tracking = true
-                addCellAt(event.x, event.y)
+                // Cizim ancak bir noktanin uzerinde baslar; bos alana dokunmak
+                // desen baslatmamali.
+                tracking = cellAt(event.x, event.y) >= 0
+                if (tracking) {
+                    fingerX = event.x
+                    fingerY = event.y
+                    addCellAt(event.x, event.y)
+                }
             }
             MotionEvent.ACTION_MOVE -> {
                 if (tracking) {
@@ -166,22 +178,35 @@ class UnlockPage(
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val wasTracking = tracking
                 tracking = false
-                submit(LockSecret.encodePattern(cells), LockSecret.isPatternValid(cells))
+                // Nokta uzerinde baslamayan dokunus desen sayilmaz; sessizce
+                // yok sayilir, "yanlis desen" uyarisi verilmez.
+                if (wasTracking) {
+                    submit(LockSecret.encodePattern(cells), LockSecret.isPatternValid(cells))
+                } else {
+                    invalidate()
+                }
             }
         }
     }
 
-    private fun addCellAt(x: Float, y: Float) {
+    /** Dairesel yakalama: kose bolgeleri kare testte fazla genis kaliyordu. */
+    private fun cellAt(x: Float, y: Float): Int {
         for (r in 0 until 3) for (col in 0 until 3) {
-            if (Math.abs(x - GRID_X[col]) < HIT && Math.abs(y - GRID_Y[r]) < HIT) {
-                val idx = r * 3 + col
-                if (!cells.contains(idx)) {
-                    cells.add(idx)
-                    invalidate()
-                }
-                return
-            }
+            val dx = x - GRID_X[col]
+            val dy = y - GRID_Y[r]
+            if (dx * dx + dy * dy <= HIT * HIT) return r * 3 + col
+        }
+        return -1
+    }
+
+    private fun addCellAt(x: Float, y: Float) {
+        val idx = cellAt(x, y)
+        if (idx < 0) return
+        if (!cells.contains(idx)) {
+            cells.add(idx)
+            invalidate()
         }
     }
 
