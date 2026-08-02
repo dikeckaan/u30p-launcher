@@ -9,7 +9,8 @@ import com.kaandikec.u30plauncher.test.TestSupport.eq
 import com.kaandikec.u30plauncher.test.TestSupport.ok
 
 object WifiInfoParserTest {
-    // Cihazdan alinmis gercek dosya parcasi
+    // Cihazdan alinmis dosya YAPISI; SSID ve parola sahte degerlerle
+    // degistirildi (gercek kimlik bilgisi repoya girmesin).
     private const val XML = """<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
 <WifiConfigStoreData>
 <int name="Version" value="3" />
