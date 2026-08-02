@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
 import com.kaandikec.u30plauncher.core.Snapshot
+import com.kaandikec.u30plauncher.core.BatteryHistory
 import com.kaandikec.u30plauncher.core.TimeAverage
 
 /**
@@ -30,6 +31,22 @@ class BatterySource(private val ctx: Context) {
     private val currentAvg = TimeAverage()
     private var lastPollAt = 0L
 
+    /** Gercek bosalma gozlemi — tahminin birincil kaynagi. */
+    private val history = BatteryHistory()
+    private val store = ctx.getSharedPreferences("u30p_battery", Context.MODE_PRIVATE)
+
+    /** Gozlenen bosalma hizi (uAh/saat) veya UNKNOWN. */
+    val drainUahPerHour: Int get() = history.drainUahPerHour()
+
+    init {
+        history.load(store.getString("history", "") ?: "", android.os.SystemClock.elapsedRealtime())
+    }
+
+    /** Surec olmeden once gecmisi sakla; gozlem saatler surdugu icin degerli. */
+    fun persist() {
+        store.edit().putString("history", history.serialize()).apply()
+    }
+
     /** ondabir °C */
     var tempC: Int = Snapshot.UNKNOWN
         private set
@@ -45,8 +62,17 @@ class BatterySource(private val ctx: Context) {
             pct = if (level < 0 || scale <= 0) Snapshot.UNKNOWN else level * 100 / scale
             tempC = i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Snapshot.UNKNOWN)
             val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-            charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+            val nowCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL
+            if (nowCharging != charging) {
+                // Sarj/desarj gecisi: onceki orneklerin isareti bile farkli,
+                // ortalamayi tasimak fisten cekince dakikalarca yanlis bir
+                // "kalan sure" gostermeye yol aciyordu.
+                currentAvg.reset()
+                history.reset()
+                lastPollAt = 0L
+            }
+            charging = nowCharging
             onChange?.invoke()
         }
     }
@@ -75,6 +101,9 @@ class BatterySource(private val ctx: Context) {
 
         try {
             chargeUah = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+            if (charging) history.reset() else {
+                history.add(chargeUah, android.os.SystemClock.elapsedRealtime())
+            }
         } catch (_: Throwable) {
         }
     }

@@ -112,6 +112,7 @@ class DataHub(ctx: Context) {
         // Kapanis islerini de calisma thread'inde yap, sonra looper'i bitir
         w?.post {
             usageStore.save(usage)
+            battery.persist()
             RootShell.close()
             t?.quitSafely()
         }
@@ -145,6 +146,18 @@ class DataHub(ctx: Context) {
         } else {
             cellFromRoot = false
         }
+    }
+
+    /**
+     * Once GOZLENEN bosalma hizindan hesapla; o gercek kullanimi icerdigi
+     * icin cok daha kararli. Yeterli gozlem birikmediyse (ilk 10 dakika,
+     * yeni acilis) anlik akima dus.
+     */
+    private fun batteryMinutesLeft(): Int {
+        if (battery.charging) return Snapshot.UNKNOWN
+        val fromDrain = BatteryEstimate.minutesLeftFromDrain(battery.chargeUah, battery.drainUahPerHour)
+        if (fromDrain != Snapshot.UNKNOWN) return fromDrain
+        return BatteryEstimate.minutesLeft(battery.chargeUah, battery.currentUa)
     }
 
     private fun pickCell(apiValue: Int, rootValue: Int): Int =
@@ -190,7 +203,7 @@ class DataHub(ctx: Context) {
             batteryUa = battery.currentUa,
             batteryTempC = battery.tempC,
             batteryCharging = battery.charging,
-            batteryMinutesLeft = BatteryEstimate.minutesLeft(battery.chargeUah, battery.currentUa),
+            batteryMinutesLeft = batteryMinutesLeft(),
             cpuTempC = thermal.readTenthsC(),
             vpnUp = net.vpnUp,
             clients = clientsCached,

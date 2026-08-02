@@ -18,6 +18,26 @@ object BatteryEstimate {
     private const val MAX_MINUTES = 48 * 60
 
     /**
+     * GOZLENEN bosalma hizindan kalan sureyi hesaplar.
+     *
+     * Tercih edilen yol budur: hiz, sarj sayacinin zaman icindeki gercek
+     * dususunden gelir; o pencerede yasanan tum yuk dahildir.
+     *
+     * @param chargeUah kalan sarj (uAh)
+     * @param drainUahPerHour gozlenen bosalma hizi; bilinmiyorsa UNKNOWN
+     */
+    fun minutesLeftFromDrain(chargeUah: Int, drainUahPerHour: Int): Int {
+        if (chargeUah <= 0) return Snapshot.UNKNOWN
+        if (drainUahPerHour == Snapshot.UNKNOWN || drainUahPerHour <= 0) return Snapshot.UNKNOWN
+        val minutes = chargeUah.toLong() * 60L / drainUahPerHour.toLong()
+        if (minutes <= 0L) return Snapshot.UNKNOWN
+        return if (minutes > MAX_MINUTES) MAX_MINUTES else minutes.toInt()
+    }
+
+    /**
+     * Anlik akimdan tahmin. Gozlem birikene kadarki YEDEK yol; o andaki
+     * cekimi gelecege uzattigi icin daha oynak.
+     *
      * @param chargeUah kalan sarj (uAh), bilinmiyorsa <= 0
      * @param currentUa anlik akim (uA); negatif = desarj
      * @return kalan dakika, hesaplanamiyorsa [Snapshot.UNKNOWN]

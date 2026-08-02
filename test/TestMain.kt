@@ -12,5 +12,6 @@ fun main() {
     RateWindowTest.run()
     BatteryEstimateTest.run()
     TimeAverageTest.run()
+    BatteryHistoryTest.run()
     exitProcess(TestSupport.report())
 }
