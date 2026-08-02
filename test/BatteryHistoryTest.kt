@@ -25,10 +25,10 @@ object BatteryHistoryTest {
         val left = BatteryEstimate.minutesLeftFromDrain(c, drain)
         ok("kalan sure makul", Math.abs(left - 9 * 60) < 60)
 
-        // Yetersiz sure: 10 dakikanin altinda guven verilmez
+        // Yetersiz sure: 5 dakikanin altinda guven verilmez
         val short = BatteryHistory()
         short.add(4_626_000, 0)
-        short.add(4_600_000, 5 * MIN)
+        short.add(4_600_000, 3 * MIN)
         eq("kisa pencere", short.drainUahPerHour(), Snapshot.UNKNOWN)
 
         // Dusus cok kucukse (olcum gurultusu) guvenilmez
@@ -78,6 +78,26 @@ object BatteryHistoryTest {
         eq("bos veri", empty.sampleCount, 0)
         empty.load("bozuk;veri", 1000)
         eq("bozuk veri", empty.sampleCount, 0)
+
+        // Cihazdan alinmis gercek desen: sayac %100'de 10 dk takili kalmis,
+        // sonra dusmus. Plato paydaya katilirsa hiz iki kat iyimser cikiyor.
+        val real = BatteryHistory()
+        val data = "4626000:1397633;4626000:1465342;4626000:1617510;4626000:1687773;" +
+            "4626000:1862019;4626000:1962512;4626000:2023322;4584366:2270774;4575114:2538882"
+        real.load(data, 2_600_000L)
+        val realDrain = real.drainUahPerHour()
+        ok("plato kirpildi", realDrain != Snapshot.UNKNOWN)
+        // Uctan uca 161 mA verirdi; dususun basindan 355 mA
+        ok("plato disarida", realDrain > 300_000)
+        ok("olculen akim araliginda", realDrain < 500_000)
+        val realLeft = BatteryEstimate.minutesLeftFromDrain(4_575_114, realDrain)
+        ok("kalan sure ~13 saat", Math.abs(realLeft - 13 * 60) < 90)
+
+        // Tamamen duz gecmis: dusus yok, hiz da yok
+        val allFlat = BatteryHistory()
+        allFlat.add(4_626_000, 0)
+        allFlat.add(4_626_000, 20 * MIN)
+        eq("hic dusmemis", allFlat.drainUahPerHour(), Snapshot.UNKNOWN)
 
         // Gozlem yoksa tahmin de yok
         eq("hiz bilinmiyor", BatteryEstimate.minutesLeftFromDrain(4_626_000, Snapshot.UNKNOWN), Snapshot.UNKNOWN)

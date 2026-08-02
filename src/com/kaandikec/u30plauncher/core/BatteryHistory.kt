@@ -17,7 +17,14 @@ package com.kaandikec.u30plauncher.core
 class BatteryHistory(
     private val capacity: Int = 48,
     private val minSpacingMs: Long = 60_000L,
-    private val minSpanMs: Long = 600_000L,
+    /**
+     * Guvenilir bir hiz icin gereken en kisa pencere.
+     *
+     * Plato kirpildiktan sonra olculen sure bu esigi asmali. 10 dakika fazla
+     * katiydi: fisten cekildikten sonra plato + 10 dk beklemek gerekiyordu.
+     * Asgari dusus sarti (minDropUah) ikinci guvence olarak duruyor.
+     */
+    private val minSpanMs: Long = 300_000L,
     /** Guvenilir bir hiz icin gereken en kucuk dusus (uAh). */
     private val minDropUah: Int = 20_000
 ) {
@@ -54,14 +61,36 @@ class BatteryHistory(
         if (size < capacity) size++
     }
 
-    /** Gozlenen bosalma hizi (uAh/saat); guvenilir degilse [Snapshot.UNKNOWN]. */
+    /**
+     * Gozlenen bosalma hizi (uAh/saat); guvenilir degilse [Snapshot.UNKNOWN].
+     *
+     * Olcum, sayacin ILK DUSTUGU andan baslar. Yakit gostergesi %100'de bir
+     * sure kipirdamiyor; o platoyu paydaya katmak cihazda hiza 161 mA
+     * dedirtiyordu, oysa ayni anda okunan akim 150-466 mA arasindaydi ve
+     * plato disarida birakilinca 355 mA cikiyor — yani plato tahmini iki kat
+     * iyimser yapiyordu.
+     */
     fun drainUahPerHour(): Int {
         if (size < 2) return Snapshot.UNKNOWN
         val newestIdx = (head - 1 + capacity) % capacity
-        val oldestIdx = if (size < capacity) 0 else head
-        val span = at[newestIdx] - at[oldestIdx]
+        val start = if (size < capacity) 0 else head
+
+        // En yuksek sarj degerini tasiyan SON ornek: dususun basladigi an
+        var maxCharge = Int.MIN_VALUE
+        for (n in 0 until size) {
+            val i = (start + n) % capacity
+            if (charge[i] > maxCharge) maxCharge = charge[i]
+        }
+        var fromIdx = start
+        for (n in 0 until size) {
+            val i = (start + n) % capacity
+            if (charge[i] == maxCharge) fromIdx = i
+        }
+        if (fromIdx == newestIdx) return Snapshot.UNKNOWN
+
+        val span = at[newestIdx] - at[fromIdx]
         if (span < minSpanMs) return Snapshot.UNKNOWN
-        val drop = charge[oldestIdx] - charge[newestIdx]
+        val drop = charge[fromIdx] - charge[newestIdx]
         if (drop < minDropUah) return Snapshot.UNKNOWN
         return (drop.toLong() * 3_600_000L / span).toInt()
     }
