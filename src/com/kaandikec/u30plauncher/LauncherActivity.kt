@@ -254,6 +254,7 @@ class LauncherActivity : Activity() {
         actionsPage.refreshState()
         wifiPage.update(hub.snapshot)
         wifiPage.refreshState()
+        settingsPage.refreshState()
         scheduleRelock()
     }
 

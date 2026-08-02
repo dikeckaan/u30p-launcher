@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import com.kaandikec.u30plauncher.R
+import com.kaandikec.u30plauncher.Actions
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
@@ -31,14 +32,15 @@ class SettingsPage(
         private const val VISIBLE_BOTTOM = 214f
 
         private const val THEME = 0
-        private const val REFRESH = 1
-        private const val LANGUAGE = 2
-        private const val LOCK = 3
-        private const val DETAIL = 4
-        private const val ENGINEERING = 5
-        private const val SYSTEM = 6
-        private const val DEVICE_SETTINGS = 7
-        private const val ROW_COUNT = 8
+        private const val BRIGHTNESS = 1
+        private const val REFRESH = 2
+        private const val LANGUAGE = 3
+        private const val LOCK = 4
+        private const val DETAIL = 5
+        private const val ENGINEERING = 6
+        private const val SYSTEM = 7
+        private const val DEVICE_SETTINGS = 8
+        private const val ROW_COUNT = 9
     }
 
     private val title = ThemeUtil.text(10f, Palette.DIM2)
@@ -50,6 +52,14 @@ class SettingsPage(
     private val chevron = ThemeUtil.stroke(Palette.DOWN, 2f)
     private val highlight = ThemeUtil.fill(0x14FFFFFF)
     private val sb = StringBuilder(16)
+
+    /** -1 = otomatik; sistemden okunur, sayfa acilinca tazelenir. */
+    private var brightnessLevel = -1
+
+    /** Sayfa gosterilirken cagrilir; parlaklik disaridan degismis olabilir. */
+    fun refreshState() {
+        Actions.brightnessAsync { brightnessLevel = it; invalidate() }
+    }
 
     private var scrollY = 0f
     private var maxScroll = 0f
@@ -124,6 +134,7 @@ class SettingsPage(
 
     private fun labelOf(i: Int): String = when (i) {
         THEME -> str(R.string.setting_theme)
+        BRIGHTNESS -> str(R.string.setting_brightness)
         REFRESH -> str(R.string.setting_refresh)
         LANGUAGE -> str(R.string.setting_language)
         LOCK -> str(R.string.setting_lock)
@@ -142,6 +153,13 @@ class SettingsPage(
                     else -> "Stacked"
                 }
             )
+            BRIGHTNESS -> {
+                if (brightnessLevel < 0) sb.append(str(R.string.brightness_auto))
+                else {
+                    sb.append(Actions.BRIGHTNESS_LEVELS[brightnessLevel] * 100 / 255)
+                    sb.append('%')
+                }
+            }
             REFRESH -> {
                 val ms = prefs.refreshMs
                 if (ms < 1000) {
@@ -221,6 +239,13 @@ class SettingsPage(
     private fun activate(row: Int) {
         when (row) {
             THEME -> prefs.theme = (prefs.theme + 1) % Prefs.THEME_COUNT
+            BRIGHTNESS -> {
+                // -1 (oto) -> 0..4 -> tekrar oto
+                brightnessLevel =
+                    if (brightnessLevel >= Actions.BRIGHTNESS_LEVELS.size - 1) -1
+                    else brightnessLevel + 1
+                Actions.setBrightnessAsync(brightnessLevel)
+            }
             REFRESH -> {
                 val opts = Prefs.REFRESH_OPTIONS
                 var idx = -1
