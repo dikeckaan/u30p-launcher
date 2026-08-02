@@ -22,7 +22,7 @@ class UnlockPage(
     ctx: Context,
     private val prefs: Prefs,
     private val onUnlocked: () -> Unit,
-    private val onEnrolled: () -> Unit,
+    private val onEnrolled: (String) -> Unit,
     private val onCancel: () -> Unit
 ) : PageView(ctx) {
 
@@ -77,7 +77,15 @@ class UnlockPage(
     override val showDots: Boolean get() = false
     override val wantsRawTouch: Boolean get() = true
 
-    private val isPattern: Boolean get() = prefs.lockMode == Prefs.LOCK_PATTERN
+    /**
+     * Gosterilecek meydan okuma turu.
+     *
+     * Kayit sirasinda HENUZ uygulanmamis moda gore cizmeliyiz; bu yuzden
+     * `prefs.lockMode` yerine disaridan verilen mod kullanilir.
+     */
+    var challengeMode: Int = Prefs.LOCK_PATTERN
+
+    private val isPattern: Boolean get() = challengeMode == Prefs.LOCK_PATTERN
 
     fun reset() {
         cells.clear()
@@ -246,10 +254,11 @@ class UnlockPage(
                 return
             }
             if (first == code) {
-                prefs.lockSecret = LockSecret.hash(code)
                 first = ""
                 reset()
-                onEnrolled()
+                // Sirri burada yazmiyoruz: mod ve sir birlikte, tek yerde
+                // islensin ki yarim kalmis bir gecis tutarsizlik birakmasin.
+                onEnrolled(code)
             } else {
                 first = ""
                 fail()

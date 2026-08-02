@@ -114,13 +114,17 @@ class LauncherActivity : Activity() {
             this, prefs,
             { scheduleRelock() },
             { recreate() },
-            { showUnlock(enrol = true) }
+            { pending -> showUnlock(enrol = true, mode = pending) }
         )
         unlockPage = UnlockPage(
             this, prefs,
             onUnlocked = { finishUnlock() },
-            onEnrolled = { showSystem(); pager.index = 2 },
-            onCancel = { if (locked) showInfo() else { showSystem(); pager.index = 2 } }
+            onEnrolled = { code -> commitLock(code) },
+            onCancel = {
+                // Iptal: mod da sir da degismedi
+                pendingLockMode = -1
+                if (locked) showInfo() else { showSystem(); pager.index = 2 }
+            }
         )
 
         pager = Pager(this)
@@ -282,17 +286,43 @@ class LauncherActivity : Activity() {
     // ------------------------------------------------------------ kilit
 
     /** Kilit acma: yonteme gore ya dogrudan ac ya da meydan okumayi goster. */
+    /**
+     * Kilit acma: yonteme gore ya dogrudan ac ya da meydan okumayi goster.
+     *
+     * Sir, GECERLI moda ait degilse (yarim kalmis bir mod degisimi) kimseyi
+     * disarida birakmamak icin dogrudan acilir.
+     */
     private fun requestUnlock() {
         if (!locked) return
-        if (prefs.lockMode == Prefs.LOCK_HOLD || prefs.lockSecret.isEmpty()) {
-            unlock()
-        } else {
+        if (com.kaandikec.u30plauncher.core.LockTransition.requiresChallenge(
+                prefs.lockMode, prefs.lockSecret, prefs.lockSecretMode
+            )
+        ) {
             showUnlock(enrol = false)
+        } else {
+            unlock()
         }
     }
 
-    private fun showUnlock(enrol: Boolean) {
-        mode = Mode.UNLOCK
+    /** Kayit sirasinda mod henuz uygulanmamistir; bekleyen modu tutariz. */
+    private var pendingLockMode = -1
+
+    /** Kayit basarili: mod ve sir birlikte yazilir. */
+    private fun commitLock(code: String) {
+        if (pendingLockMode >= 0) {
+            prefs.lockMode = pendingLockMode
+            prefs.lockSecret = com.kaandikec.u30plauncher.core.LockSecret.hash(code)
+            prefs.lockSecretMode = pendingLockMode
+            pendingLockMode = -1
+        }
+        showSystem()
+        pager.index = 2
+    }
+
+    private fun showUnlock(enrol: Boolean, mode: Int = prefs.lockMode) {
+        pendingLockMode = if (enrol) mode else -1
+        unlockPage.challengeMode = mode
+        this.mode = Mode.UNLOCK
         unlockPage.enrolling = enrol
         unlockPage.update(hub.snapshot)
         pager.setPages(listOf(unlockPage))

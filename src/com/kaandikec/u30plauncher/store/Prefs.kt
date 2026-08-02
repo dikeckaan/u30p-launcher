@@ -77,6 +77,17 @@ class Prefs(ctx: Context) {
         get() = sp.getString("lock_secret", "") ?: ""
         set(v) { sp.edit().putString("lock_secret", v).apply() }
 
+    /**
+     * Saklanan sirrin ait oldugu kilit modu (-1 = sir yok).
+     *
+     * Desen ve PIN sirlari birbirinin yerine gecemez; hangi mod icin
+     * kaydedildigini bilmek, mod degistirirken gereksiz yere yeniden kayit
+     * istemeyi de gereksiz yere yanlis sirri kabul etmeyi de onler.
+     */
+    var lockSecretMode: Int
+        get() = sp.getInt("lock_secret_mode", -1)
+        set(v) { sp.edit().putInt("lock_secret_mode", v).apply() }
+
     var systemPage: Boolean
         get() = sp.getBoolean("page_system", true)
         set(v) { sp.edit().putBoolean("page_system", v).apply() }

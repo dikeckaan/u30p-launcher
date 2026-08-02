@@ -7,6 +7,7 @@ import android.view.MotionEvent
 import android.view.ViewConfiguration
 import com.kaandikec.u30plauncher.R
 import com.kaandikec.u30plauncher.Actions
+import com.kaandikec.u30plauncher.core.LockTransition
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.theme.ThemeUtil
@@ -23,7 +24,7 @@ class SettingsPage(
     private val prefs: Prefs,
     private val onChanged: () -> Unit,
     private val onLanguageChanged: () -> Unit,
-    private val onEnrolLock: () -> Unit
+    private val onEnrolLock: (Int) -> Unit
 ) : PageView(ctx) {
 
     companion object {
@@ -262,14 +263,14 @@ class SettingsPage(
             }
             LOCK -> {
                 val next = (prefs.lockMode + 1) % Prefs.LOCK_COUNT
-                prefs.lockMode = next
-                // Desen/PIN secildiyse sirri belirlemek gerek
-                if (next != Prefs.LOCK_HOLD) {
-                    prefs.lockSecret = ""
-                    onEnrolLock()
+                if (LockTransition.needsEnrolment(next, prefs.lockSecret, prefs.lockSecretMode)) {
+                    // Mod ve sir ancak basarili kayittan sonra degisir
+                    onEnrolLock(next)
                     return
                 }
-                prefs.lockSecret = ""
+                // Mevcut sir korunur: ayni moda geri donulunce yeniden
+                // kayit istenmesin.
+                prefs.lockMode = next
             }
             DETAIL -> prefs.detailPage = !prefs.detailPage
             ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage
