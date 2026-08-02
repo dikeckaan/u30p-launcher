@@ -75,4 +75,7 @@
     <string name="lock_cancel_hint">iptal için ✕</string>
     <string name="setting_brightness">Parlaklık</string>
     <string name="brightness_auto">Oto</string>
+    <string name="lock_not_set">ayarsız</string>
+    <string name="lock_hold_to_set">belirlemek için basılı tut</string>
+    <string name="lock_is_set">ayarlı</string>
 </resources>

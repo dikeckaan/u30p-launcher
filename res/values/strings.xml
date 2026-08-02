@@ -85,4 +85,7 @@
     <string name="lock_cancel_hint">tap ✕ to cancel</string>
     <string name="setting_brightness">Brightness</string>
     <string name="brightness_auto">Auto</string>
+    <string name="lock_not_set">not set</string>
+    <string name="lock_hold_to_set">hold to set</string>
+    <string name="lock_is_set">set</string>
 </resources>

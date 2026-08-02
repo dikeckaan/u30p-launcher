@@ -42,6 +42,15 @@ class SettingsPage(
         private const val SYSTEM = 7
         private const val DEVICE_SETTINGS = 8
         private const val ROW_COUNT = 9
+
+        /**
+         * Kilit satirinda sifre belirlemeyi acan basili tutma suresi.
+         *
+         * Pager'in kendi uzun basmasi (600 ms) ayarlar ekraninda kapali
+         * oldugu icin catisma yok; yine de kaydirmayla karismasin diye
+         * biraz kisa tutuldu.
+         */
+        private const val LONG_PRESS_MS = 450L
     }
 
     private val title = ThemeUtil.text(10f, Palette.DIM2)
@@ -67,6 +76,7 @@ class SettingsPage(
     private var downY = 0f
     private var downScroll = 0f
     private var dragging = false
+    private var longPressFired = false
     private var pressed = -1
     private val slop = ViewConfiguration.get(ctx).scaledTouchSlop
 
@@ -119,9 +129,16 @@ class SettingsPage(
 
         sb.setLength(0)
         appendValue(sb, i)
-        val w = Geom.textWidth(sb, value)
-        Geom.textAt(c, sb, 196f - w, y + 9f, value)
+        // Sirri olmayan bir kilit modu sessizce ise yaramaz; degeri uyari
+        // renginde cizmek "burada yapilacak bir sey var" der.
+        val p = if (i == LOCK && needsSecret()) warn else value
+        val w = Geom.textWidth(sb, p)
+        Geom.textAt(c, sb, 196f - w, y + 9f, p)
     }
+
+    /** Secili modun kullanilabilir bir sirri var mi? */
+    private fun needsSecret(): Boolean =
+        LockTransition.needsEnrolment(prefs.lockMode, prefs.lockSecret, prefs.lockSecretMode)
 
     private fun drawScrollbar(c: Canvas) {
         if (maxScroll <= 0f) return
@@ -179,13 +196,24 @@ class SettingsPage(
                     else -> str(R.string.lang_system)
                 }
             )
-            LOCK -> sb.append(
-                when (prefs.lockMode) {
-                    Prefs.LOCK_PATTERN -> str(R.string.lock_pattern)
-                    Prefs.LOCK_PIN -> str(R.string.lock_pin)
-                    else -> str(R.string.lock_hold)
+            LOCK -> {
+                sb.append(
+                    when (prefs.lockMode) {
+                        Prefs.LOCK_PATTERN -> str(R.string.lock_pattern)
+                        Prefs.LOCK_PIN -> str(R.string.lock_pin)
+                        else -> str(R.string.lock_hold)
+                    }
+                )
+                // Basili tut sir gerektirmez; digerlerinde sirrin durumu
+                // satirin kendisinde gorunsun.
+                if (prefs.lockMode != Prefs.LOCK_HOLD) {
+                    sb.append(' ')
+                    sb.append(
+                        if (needsSecret()) str(R.string.lock_not_set)
+                        else str(R.string.lock_is_set)
+                    )
                 }
-            )
+            }
             DETAIL -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
             ENGINEERING -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
             else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
@@ -204,7 +232,9 @@ class SettingsPage(
                 downY = event.y
                 downScroll = scrollY
                 dragging = false
+                longPressFired = false
                 pressed = rowAt(event.y)
+                if (pressed >= 0) postDelayed(longPress, LONG_PRESS_MS)
                 invalidate()
             }
 
@@ -213,6 +243,7 @@ class SettingsPage(
                 if (!dragging && Math.abs(dy) > slop) {
                     dragging = true
                     pressed = -1
+                    clearPendingLongPress()
                 }
                 if (dragging) {
                     scrollY = (downScroll - dy).coerceIn(0f, maxScroll)
@@ -221,7 +252,12 @@ class SettingsPage(
             }
 
             MotionEvent.ACTION_UP -> {
-                if (!dragging && pressed >= 0 && pressed == rowAt(event.y)) {
+                clearPendingLongPress()
+                // Uzun basma zaten calistiysa birakma satiri ayrica
+                // tetiklemesin; yoksa hem sifre ekrani acilir hem mod doner.
+                if (!dragging && !longPressFired &&
+                    pressed >= 0 && pressed == rowAt(event.y)
+                ) {
                     activate(pressed)
                 }
                 pressed = -1
@@ -230,12 +266,31 @@ class SettingsPage(
             }
 
             MotionEvent.ACTION_CANCEL -> {
+                clearPendingLongPress()
                 pressed = -1
                 dragging = false
                 invalidate()
             }
         }
     }
+
+    /**
+     * Kilit satirinda basili tutmak sifre belirlemeyi acar.
+     *
+     * Dokunus ile ayrilmasinin sebebi: dokunus modlar arasinda gezinmeyi
+     * saglamali, her gecisde sifre ekrani dayatmamali.
+     */
+    private val longPress = Runnable {
+        if (pressed == LOCK && !dragging) {
+            longPressFired = true
+            pressed = -1
+            invalidate()
+            if (prefs.lockMode != Prefs.LOCK_HOLD) onEnrolLock(prefs.lockMode)
+        }
+    }
+
+    /** `View.cancelLongPress()` ile ad catismasin diye ayri isim. */
+    private fun clearPendingLongPress() = removeCallbacks(longPress)
 
     private fun activate(row: Int) {
         when (row) {
@@ -262,15 +317,15 @@ class SettingsPage(
                 return
             }
             LOCK -> {
-                val next = (prefs.lockMode + 1) % Prefs.LOCK_COUNT
-                if (LockTransition.needsEnrolment(next, prefs.lockSecret, prefs.lockSecretMode)) {
-                    // Mod ve sir ancak basarili kayittan sonra degisir
-                    onEnrolLock(next)
-                    return
-                }
-                // Mevcut sir korunur: ayni moda geri donulunce yeniden
-                // kayit istenmesin.
-                prefs.lockMode = next
+                // Dokunus YALNIZCA modu dondurur. Once burada kayit ekrani
+                // aciliyordu; sirri olmayan bir moda her gecisde kullanici
+                // desen ekranina dusuyor, modlar arasinda gezinemiyordu.
+                // Sir belirleme artik ayni satiri basili tutmakla geliyor.
+                //
+                // Sirri olmayan bir mod tehlikeli degil: LockTransition
+                // .requiresChallenge sir yoksa meydan okuma gostermez, yani
+                // kimse disarida kalmaz.
+                prefs.lockMode = (prefs.lockMode + 1) % Prefs.LOCK_COUNT
             }
             DETAIL -> prefs.detailPage = !prefs.detailPage
             ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage

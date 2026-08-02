@@ -49,6 +49,18 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
     private var pageCanScrollUp = false
     private var pageCanScrollDown = false
 
+    /**
+     * Hareketin basladigi sayfa.
+     *
+     * Bir sayfa dokunusa yanit olarak sayfa yiginini degistirebiliyor
+     * (orn. ayarlarda basili tutmak sifre ekranini aciyor). Boyle bir
+     * durumda hareketin GERI KALANI eski sayfaya aittir; yeni sayfaya
+     * iletilirse parmagin bulundugu nokta orada baska bir seye denk gelir.
+     * Gercekte oldu: sifre ekranini acan basili tutmanin birakilmasi tus
+     * takiminda "0"a denk gelip kendiliginden bir hane giriyordu.
+     */
+    private var downPage: PageView? = null
+
     /** null = eksen henuz secilmedi. */
     private var horizontal: Boolean? = null
 
@@ -119,6 +131,7 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
     }
 
     val currentPage: PageView? get() = pages.getOrNull(current)
+
 
     var index: Int
         get() = current
@@ -199,6 +212,7 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
                     downY = event.y
                     moved = false
                     longPressFired = false
+                    downPage = page
                     postDelayed(longPress, LONG_PRESS_MS)
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -222,8 +236,17 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
                 downY = event.y
                 moved = false
                 longPressFired = false
+                downPage = page
                 horizontal = null
-                settling = false
+                // Devam eden oturmayi IPTAL etmek yerine TAMAMLA. Iptal
+                // edilince `current` ilerlemiyor ama `dragX` yerinde kaliyordu;
+                // sonuc olarak GORUNEN sayfa ile dokunmanin gittigi sayfa
+                // birbirinden ayrisiyordu.
+                if (settling) {
+                    settling = false
+                    dragX = settleTo
+                    finishSettle()
+                }
                 pageCanScrollUp = page?.canScrollVertically(false) ?: false
                 pageCanScrollDown = page?.canScrollVertically(true) ?: false
                 if (longPressEnabled) postDelayed(longPress, LONG_PRESS_MS)
@@ -279,7 +302,11 @@ class Pager(ctx: Context) : FrameLayout(ctx) {
             }
         }
 
-        if (page != null && page.wantsRawTouch) page.onRawTouch(event)
+        // Hareket sirasinda sayfa yigini degistiyse geri kalanini yutariz.
+        val target = currentPage
+        if (target != null && target === downPage && target.wantsRawTouch) {
+            target.onRawTouch(event)
+        }
         return true
     }
 
