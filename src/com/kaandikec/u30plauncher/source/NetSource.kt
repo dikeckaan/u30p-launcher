@@ -2,6 +2,7 @@ package com.kaandikec.u30plauncher.source
 
 import com.kaandikec.u30plauncher.core.IfCounters
 import com.kaandikec.u30plauncher.core.ProcNetParser
+import com.kaandikec.u30plauncher.core.RateWindow
 import java.io.File
 import java.io.FileInputStream
 
@@ -25,6 +26,9 @@ class NetSource {
     private var lastRx = -1L
     private var lastTx = -1L
     private var lastAt = 0L
+
+    private val rxWindow = RateWindow()
+    private val txWindow = RateWindow()
 
     var rxSpeed: Long = 0; private set
     var txSpeed: Long = 0; private set
@@ -67,10 +71,18 @@ class NetSource {
 
         if (lastRx >= 0 && nowMs > lastAt) {
             val dt = nowMs - lastAt
-            val dRx = if (rx < lastRx) rx else rx - lastRx
-            val dTx = if (tx < lastTx) tx else tx - lastTx
-            rxSpeed = dRx * 1000L / dt
-            txSpeed = dTx * 1000L / dt
+            val reset = rx < lastRx || tx < lastTx
+            if (reset) {
+                // Sayac sifirlandi (reboot / arayuz yeniden kuruldu): eski
+                // ornekler artik anlamsiz
+                rxWindow.reset()
+                txWindow.reset()
+            } else {
+                rxWindow.add(rx - lastRx, dt)
+                txWindow.add(tx - lastTx, dt)
+            }
+            rxSpeed = rxWindow.bytesPerSec()
+            txSpeed = txWindow.bytesPerSec()
         }
         lastRx = rx
         lastTx = tx

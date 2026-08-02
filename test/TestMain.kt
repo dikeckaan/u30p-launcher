@@ -9,5 +9,6 @@ fun main() {
     SnapshotTest.run()
     CellIdentityParserTest.run()
     WifiInfoParserTest.run()
+    RateWindowTest.run()
     exitProcess(TestSupport.report())
 }
