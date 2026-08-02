@@ -72,7 +72,7 @@
     <string name="lock_set_first">ÇİZ VEYA GİR</string>
     <string name="lock_set_repeat">TEKRARLA</string>
     <string name="lock_wrong">tekrar dene</string>
-    <string name="lock_cancel_hint">iptal için geri</string>
+    <string name="lock_cancel_hint">iptal için ✕</string>
     <string name="setting_brightness">Parlaklık</string>
     <string name="brightness_auto">Oto</string>
 </resources>

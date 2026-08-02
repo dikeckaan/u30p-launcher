@@ -42,6 +42,14 @@ class UnlockPage(
         private const val KEY_HIT = 26f
 
         private const val ERROR_MS = 700L
+
+        /** Tus takimindaki iptal hucresi. */
+        private const val CANCEL_KEY = "\u2715"
+
+        /** Desen ekraninda iptal dugmesi. */
+        private const val CANCEL_CX = 120f
+        private const val CANCEL_CY = 214f
+        private const val CANCEL_HIT = 22f
     }
 
     /** Sirri belirleme modu; false ise dogrulama. */
@@ -62,6 +70,7 @@ class UnlockPage(
     private val keyRing = ThemeUtil.stroke(Palette.DIM2, 1f)
     private val pinOn = ThemeUtil.fill(Palette.DOWN)
     private val pinOff = ThemeUtil.stroke(Palette.DIM2, 1.5f)
+    private val cancelPaint = ThemeUtil.stroke(Palette.DIM, 2f)
     private val path = Path()
 
     private val cells = ArrayList<Int>(9)
@@ -109,7 +118,19 @@ class UnlockPage(
         if (isPattern) drawPattern(c, err) else drawPin(c, err)
 
         if (err) Geom.centerText(c, str(R.string.lock_wrong), 222f, hint)
-        else if (enrolling) Geom.centerText(c, str(R.string.lock_cancel_hint), 222f, hint)
+
+        // Desen ekraninda gorunur iptal. PIN'de tus takiminin sag alt
+        // hucresi bu isi goruyor.
+        //
+        // Bu ekranin tek cikisi geri hareketiydi; Pager tum yuzeyi
+        // `systemGestureExclusionRects` ile talep ettigi icin o hareket
+        // calismiyor ve cihazda fiziksel geri tusu da yok — kullanici kayit
+        // ekraninda kapali kaliyordu.
+        if (isPattern) {
+            val r = 9f
+            c.drawLine(CANCEL_CX - r, CANCEL_CY - r, CANCEL_CX + r, CANCEL_CY + r, cancelPaint)
+            c.drawLine(CANCEL_CX + r, CANCEL_CY - r, CANCEL_CX - r, CANCEL_CY + r, cancelPaint)
+        }
     }
 
     private fun drawPattern(c: Canvas, err: Boolean) {
@@ -152,12 +173,12 @@ class UnlockPage(
         }
     }
 
-    /** 1-9, sonra sil / 0 / onay. */
+    /** 1-9, sonra sil / 0 / iptal. */
     private fun keyLabel(row: Int, col: Int): String? = when {
         row < 3 -> (row * 3 + col + 1).toString()
         col == 0 -> "<"
         col == 1 -> "0"
-        else -> null
+        else -> CANCEL_KEY
     }
 
     override fun onRawTouch(event: MotionEvent) {
@@ -167,6 +188,10 @@ class UnlockPage(
     private fun onPatternTouch(event: MotionEvent) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                if (isCancelHit(event.x, event.y)) {
+                    onCancel()
+                    return
+                }
                 cells.clear()
                 // Cizim ancak bir noktanin uzerinde baslar; bos alana dokunmak
                 // desen baslatmamali.
@@ -199,6 +224,13 @@ class UnlockPage(
         }
     }
 
+    private fun isCancelHit(x: Float, y: Float): Boolean {
+        if (!isPattern) return false
+        val dx = x - CANCEL_CX
+        val dy = y - CANCEL_CY
+        return dx * dx + dy * dy <= CANCEL_HIT * CANCEL_HIT
+    }
+
     /** Dairesel yakalama: kose bolgeleri kare testte fazla genis kaliyordu. */
     private fun cellAt(x: Float, y: Float): Int {
         for (r in 0 until 3) for (col in 0 until 3) {
@@ -226,6 +258,11 @@ class UnlockPage(
                 Math.abs(event.y - KEY_Y[r]) < KEY_HIT
             ) {
                 when (label) {
+                    CANCEL_KEY -> {
+                        reset()
+                        onCancel()
+                        return
+                    }
                     "<" -> {
                         if (pin.isNotEmpty()) pin.setLength(pin.length - 1)
                         else onCancel()

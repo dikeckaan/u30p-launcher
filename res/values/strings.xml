@@ -82,7 +82,7 @@
     <string name="lock_set_first">DRAW OR ENTER</string>
     <string name="lock_set_repeat">REPEAT</string>
     <string name="lock_wrong">try again</string>
-    <string name="lock_cancel_hint">back to cancel</string>
+    <string name="lock_cancel_hint">tap ✕ to cancel</string>
     <string name="setting_brightness">Brightness</string>
     <string name="brightness_auto">Auto</string>
 </resources>
