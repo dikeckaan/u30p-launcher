@@ -13,6 +13,7 @@ class UsageStore(ctx: Context) {
         dayBytes = sp.getLong("day_bytes", 0)
         monthBytes = sp.getLong("month_bytes", 0)
         lastTotal = sp.getLong("last_total", -1)
+        lastAtMs = sp.getLong("last_at_ms", 0)
     }
 
     fun save(s: UsageState) {
@@ -22,6 +23,7 @@ class UsageStore(ctx: Context) {
             .putLong("day_bytes", s.dayBytes)
             .putLong("month_bytes", s.monthBytes)
             .putLong("last_total", s.lastTotal)
+            .putLong("last_at_ms", s.lastAtMs)
             .apply()
     }
 }

@@ -32,6 +32,20 @@ class DataHub(ctx: Context) {
     companion object {
         /** ARP tablosu ve hucre kimligi saniyede bir degismez; seyrek okunur. */
         private const val SLOW_INTERVAL_MS = 5000L
+
+        /**
+         * Trafik sayaclarinin diske yazilma araligi.
+         *
+         * Once yalnizca `pause()` aninda yaziliyordu. Launcher HOME oldugu
+         * icin saatlerce hic duraklamiyor; surec oldugunde `lastTotal`
+         * saatler oncesine donuyor ve bir sonraki acilista TEK bir dev delta
+         * hesaplaniyordu. O delta gun sinirini assa bile tamami icinde
+         * bulunulan gune yaziliyor, yani dunun trafigi bugun gorunuyordu.
+         *
+         * 30 sn'de bir yazmak yanlis atfi bu araliga indirir; SharedPreferences
+         * `apply()` zaten asenkron ve yazilan alan bes tane.
+         */
+        private const val USAGE_SAVE_INTERVAL_MS = 30_000L
     }
 
     private val prefs = Prefs(ctx)
@@ -172,6 +186,22 @@ class DataHub(ctx: Context) {
         cal.timeInMillis = System.currentTimeMillis()
     }
 
+    private var lastUsageSaveAt = 0L
+
+    /** Calisma thread'inde cagrilir. `force` devir anlarinda kullanilir. */
+    private fun saveUsageIfDue(force: Boolean) {
+        val now = SystemClock.elapsedRealtime()
+        if (!force && lastUsageSaveAt != 0L && now - lastUsageSaveAt < USAGE_SAVE_INTERVAL_MS) {
+            return
+        }
+        lastUsageSaveAt = now
+        usageStore.save(usage)
+        // Pil gecmisi de yalnizca pause'da yaziliyordu; ayni sebeple surec
+        // oldugunde bosalma gozlemi sifirlaniyor ve kalan sure tahmini
+        // bastan ogrenmek zorunda kaliyordu.
+        battery.persist()
+    }
+
     private fun rebuild() {
         if (!running) return
 
@@ -180,9 +210,31 @@ class DataHub(ctx: Context) {
         val dayKey = cal.get(Calendar.YEAR) * 366 + cal.get(Calendar.DAY_OF_YEAR)
         val monthKey = cal.get(Calendar.YEAR) * 12 + cal.get(Calendar.MONTH)
 
+        // Gun/ay sinirlarinin duvar saati karsiliklari; sinir asan bir delta
+        // bunlara gore bolunuyor. `cal` burada geriye sariliyor, bir sonraki
+        // rebuild yeniden damgaliyor.
+        val nowMs = cal.timeInMillis
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val dayStartMs = cal.timeInMillis
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        val monthStartMs = cal.timeInMillis
+
         // Ilk basarili ornekten once wanTotal 0'dir; onu gercek bir okuma sanip
         // sayaci sifirlamayalim.
-        if (net.wanTotal > 0) UsageCalc.update(usage, net.wanTotal, dayKey, monthKey)
+        if (net.wanTotal > 0) {
+            val prevDay = usage.dayKey
+            val prevMonth = usage.monthKey
+            UsageCalc.update(
+                usage, net.wanTotal, dayKey, monthKey, nowMs, dayStartMs, monthStartMs
+            )
+            // Devir anini kacirmayalim: yeni gun sifirdan baslamis olmali ki
+            // surec olurse eski gunun toplami geri gelmesin.
+            val rolled = usage.dayKey != prevDay || usage.monthKey != prevMonth
+            saveUsageIfDue(rolled)
+        }
 
         val next = Snapshot(
             operator = telephony.operator,
