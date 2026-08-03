@@ -69,6 +69,22 @@ class LauncherActivity : Activity() {
         }
     }
     private var screenOffRegistered = false
+
+    /**
+     * Uygulama kurulunca/kaldirilinca izgara tazelensin.
+     *
+     * Liste surec basina bir kez okunuyordu; launcher HOME oldugu icin surec
+     * gunlerce ayakta kaliyor ve yeni kurulan uygulama hic gorunmuyordu.
+     * Burada yalnizca bayrak dusuruluyor, okuma sayfa acilirken yapiliyor.
+     */
+    private val packageChange = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
+            appsPage.markStale()
+            // Kullanici izgaraya bakiyorsa hemen guncelle
+            if (mode == Mode.APPS) appsPage.ensureLoaded()
+        }
+    }
+    private var packageChangeRegistered = false
     private var pausedAt = 0L
 
 
@@ -153,6 +169,19 @@ class LauncherActivity : Activity() {
             android.content.Context.RECEIVER_NOT_EXPORTED
         )
         screenOffRegistered = true
+
+        // Paket yayinlarinin veri semasi olmali; olmazsa hicbiri gelmez.
+        val pkgFilter = android.content.IntentFilter().apply {
+            addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
+            addAction(android.content.Intent.ACTION_PACKAGE_REMOVED)
+            addAction(android.content.Intent.ACTION_PACKAGE_REPLACED)
+            addAction(android.content.Intent.ACTION_PACKAGE_CHANGED)
+            addDataScheme("package")
+        }
+        registerReceiver(
+            packageChange, pkgFilter, android.content.Context.RECEIVER_NOT_EXPORTED
+        )
+        packageChangeRegistered = true
     }
 
     override fun onDestroy() {
@@ -160,6 +189,10 @@ class LauncherActivity : Activity() {
         if (screenOffRegistered) {
             try { unregisterReceiver(screenOff) } catch (_: Throwable) {}
             screenOffRegistered = false
+        }
+        if (packageChangeRegistered) {
+            try { unregisterReceiver(packageChange) } catch (_: Throwable) {}
+            packageChangeRegistered = false
         }
     }
 

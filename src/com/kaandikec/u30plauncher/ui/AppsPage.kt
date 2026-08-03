@@ -62,10 +62,24 @@ class AppsPage(ctx: Context) : PageView(ctx) {
     override val showDots: Boolean get() = false
     override val wantsRawTouch: Boolean get() = true
 
+    /**
+     * Paket listesi degisti; bir sonraki acilista yeniden okunmali.
+     *
+     * Liste sureci boyunca bir kez okunuyordu. Launcher HOME oldugu icin
+     * surec gunlerce yasiyor; sonradan kurulan uygulama hic gorunmuyor,
+     * kaldirilan ise izgarada kaliyordu. Yeniden okuma burada degil, sayfa
+     * acilirken yapiliyor: simge rasterlemek pahali, yayin aninda yapmanin
+     * anlami yok.
+     */
+    fun markStale() {
+        stale = true
+    }
+
+    private var stale = false
+
     /** Acilista bir kez kurulur; siralama her acilista tazelenir. */
     fun ensureLoaded() {
-        if (labels.isEmpty()) load()
-        else resort()
+        if (labels.isEmpty() || stale) load() else resort()
     }
 
     private fun load() {
@@ -99,6 +113,7 @@ class AppsPage(ctx: Context) : PageView(ctx) {
             rows.add(Entry(name, icon, i, key))
         }
         entries = rows
+        stale = false
         resort()
     }
 
