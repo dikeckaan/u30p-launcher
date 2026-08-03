@@ -11,6 +11,7 @@ import com.kaandikec.u30plauncher.core.CellIdentityParser
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.core.UsageCalc
 import com.kaandikec.u30plauncher.source.BatterySource
+import com.kaandikec.u30plauncher.source.DataUsageSource
 import com.kaandikec.u30plauncher.source.NetSource
 import com.kaandikec.u30plauncher.source.RootShell
 import com.kaandikec.u30plauncher.source.SystemSource
@@ -55,6 +56,7 @@ class DataHub(ctx: Context) {
     private val battery = BatterySource(ctx)
     private val telephony = TelephonySource(ctx)
     private val net = NetSource()
+    private val dataUsage = DataUsageSource(ctx)
     private val thermal = ThermalSource()
     private val system = SystemSource()
 
@@ -236,6 +238,13 @@ class DataHub(ctx: Context) {
             saveUsageIfDue(rolled)
         }
 
+        // Cihazin kendi sayaci varsa o esas alinir: reboot'tan etkilenmiyor
+        // ve launcher uykudayken akan trafigi de iceriyor. Okunamazsa kendi
+        // biriktirdigimiz degere duseriz.
+        dataUsage.sample(nowMs, dayStartMs, monthStartMs)
+        val today = if (dataUsage.todayBytes >= 0) dataUsage.todayBytes else usage.dayBytes
+        val month = if (dataUsage.monthBytes >= 0) dataUsage.monthBytes else usage.monthBytes
+
         val next = Snapshot(
             operator = telephony.operator,
             netType = telephony.netType,
@@ -252,8 +261,8 @@ class DataHub(ctx: Context) {
             signalLevel = telephony.level,
             rxSpeed = net.rxSpeed,
             txSpeed = net.txSpeed,
-            todayBytes = usage.dayBytes,
-            monthBytes = usage.monthBytes,
+            todayBytes = today,
+            monthBytes = month,
             batteryPct = battery.pct,
             batteryUa = battery.currentUa,
             batteryTempC = battery.tempC,
