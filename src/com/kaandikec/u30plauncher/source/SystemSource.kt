@@ -6,6 +6,8 @@ import android.os.SystemClock
 import com.kaandikec.u30plauncher.core.CpuTimes
 import com.kaandikec.u30plauncher.core.MemInfo
 import com.kaandikec.u30plauncher.core.MemInfoParser
+import com.kaandikec.u30plauncher.core.ProcPidStat
+import com.kaandikec.u30plauncher.core.ProcPidStatParser
 import com.kaandikec.u30plauncher.core.ProcStatParser
 import com.kaandikec.u30plauncher.core.Snapshot
 import java.io.File
@@ -22,6 +24,8 @@ class SystemSource {
     companion object {
         private const val BUF = 8192
         private const val STORAGE_INTERVAL_MS = 60_000L
+
+        // Tum /proc'u taramak pahali; loadavg gibi saniyede bir gerekmiyor.
     }
 
     private val buf = ByteArray(BUF)
@@ -42,6 +46,22 @@ class SystemSource {
 
     /** Yuz katı: 1048 = 10.48 */
     var loadAvgX100: Int = Snapshot.UNKNOWN; private set
+
+    /** En cok CPU yiyen kullanici surecinin adi; yoksa bos. */
+    var topProcName: String = ""; private set
+
+    /** O surecin toplam CPU icindeki yuzdesi (cpuPercent ile ayni olcek). */
+    var topProcPercent: Int = Snapshot.UNKNOWN; private set
+
+    private val pidStat = ProcPidStat()
+
+    // pid -> onceki (utime+stime). Iki harita swap edilir; boylece olen
+    // pid'ler birikmez. Boxing var ama tarama 5 sn'de bir ve cizim yolunda
+    // degil, GC yuku ihmal edilebilir.
+    private var prevTicks = HashMap<Int, Long>(256)
+    private var curTicks = HashMap<Int, Long>(256)
+    private var prevProcTotalCpu = 0L
+    private var haveProcBaseline = false
 
     private var lastStorageAt = 0L
 
@@ -77,6 +97,82 @@ class SystemSource {
         readLoad()
         readStorageIfDue()
     }
+
+    /**
+     * En cok CPU yiyen sureci ROOT DOKUMUNDEN hesaplar.
+     *
+     * Dogrudan /proc taramasi bu cihazda ISE YARAMIYOR: /proc
+     * `hidepid=invisible,gid=3009` ile bagli ve launcher normal bir uygulama
+     * olarak (AID_READPROC olmadan) yalnizca KENDI surecini gorebiliyor —
+     * olcum her zaman launcher'in kendisini gosterirdi. Bu yuzden dokumu
+     * DataHub root kabugundan alip buraya veriyor.
+     *
+     * `dump` = surec basina bir satir olacak sekilde toplanmis
+     * /proc/<pid>/stat ciktisi.
+     * Olculdu: 507 surecte 0.03 sn, 5 sn'lik aralik icin kabul edilebilir.
+     */
+    fun applyProcDump(dump: String, totalCpuNow: Long) {
+        curTicks.clear()
+        val dTotal = totalCpuNow - prevProcTotalCpu
+
+        var bestName = ""
+        var bestDelta = 0L
+        var bestPid = -1
+
+        var i = 0
+        val n = dump.length
+        while (i < n) {
+            var e = dump.indexOf('\n', i)
+            if (e < 0) e = n
+            // Satiri yeniden kullanilan tampona kopyala; stat satirlari ASCII.
+            var len = e - i
+            if (len > buf.size) len = buf.size
+            for (k in 0 until len) buf[k] = dump[i + k].code.toByte()
+            i = e + 1
+            if (len <= 0) continue
+            if (!ProcPidStatParser.parse(buf, len, pidStat)) continue
+
+            // Cekirdek parcaciklari kthreadd'nin (pid 2) cocugudur; onlari
+            // "kullanici sureci" olarak gostermek yaniltici olur. Zaten
+            // yaniltici LOAD olcusunu bu yuzden kaldirdik.
+            if (pidStat.ppid == 2) continue
+            val pid = pidStat.pid
+            if (pid <= 2) continue
+
+            val ticks = pidStat.cpuTicks
+            curTicks[pid] = ticks
+            if (!haveProcBaseline) continue
+            val prev = prevTicks[pid] ?: continue
+            val d = ticks - prev
+            if (d > bestDelta) {
+                bestDelta = d
+                bestName = pidStat.comm
+                bestPid = pid
+            }
+        }
+
+        if (haveProcBaseline && dTotal > 0 && bestPid >= 0) {
+            // ONDA BIRLIK: paydada 8 cekirdegin toplami var, tek bir surec
+            // nadiren %1'i asiyor ve tam sayida her zaman "0%" gorunuyordu.
+            val pct = bestDelta * 1000L / dTotal
+            topProcPercent = if (pct > 1000L) 1000 else pct.toInt()
+            topProcName = bestName
+        } else if (!haveProcBaseline) {
+            topProcPercent = Snapshot.UNKNOWN
+            topProcName = ""
+        }
+        // Aksi halde (aday yok / pencere bos) onceki deger korunur
+
+        val tmp = prevTicks
+        prevTicks = curTicks
+        curTicks = tmp
+        prevProcTotalCpu = totalCpuNow
+        haveProcBaseline = true
+    }
+
+    /** DataHub dokumu isterken toplam CPU'yu da vermeli. */
+    val cpuTotalTicks: Long get() = nowCpu.total
+
 
     /** `/proc/loadavg` ilk alani: "10.48 10.49 11.02 1/1754 14723" */
     private fun readLoad() {

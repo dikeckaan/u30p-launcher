@@ -86,6 +86,18 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("page_engineering", true)
         set(v) { sp.edit().putBoolean("page_engineering", v).apply() }
 
+    /**
+     * Mesajlar sayfasi SISTEM seridinde: INFO seridi kilitliyken de ciziliyor,
+     * mesajlar kilit ekraninda gorunmemeli.
+     */
+    var smsPage: Boolean
+        get() = sp.getBoolean("page_sms", true)
+        set(v) { sp.edit().putBoolean("page_sms", v).apply() }
+
+    var historyPage: Boolean
+        get() = sp.getBoolean("page_history", true)
+        set(v) { sp.edit().putBoolean("page_history", v).apply() }
+
     var language: Int
         get() = sp.getInt("language", LANG_SYSTEM).coerceIn(0, LANG_COUNT - 1)
         set(v) { sp.edit().putInt("language", v).apply() }

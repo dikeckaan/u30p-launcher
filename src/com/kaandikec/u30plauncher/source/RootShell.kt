@@ -73,6 +73,17 @@ object RootShell {
             while (true) {
                 val line = r.readLine() ?: return null
                 if (line == MARK) break
+                // Isaret satirin SONUNDA da olabilir: cikti satir sonuyla
+                // bitmiyorsa (orn. /mnt/vendor/*.txt dosyalari) kabuk
+                // "icerikMARK" seklinde tek satir uretir. Bunu yakalamazsak
+                // dongu bir sonraki komutun ciktisini beklemeye baslar ve
+                // PAYLASILAN kabuk kalici olarak kayar: o andan sonra her
+                // okuma bir onceki komutun cevabini dondurur.
+                if (line.endsWith(MARK)) {
+                    if (sb.isNotEmpty()) sb.append('\n')
+                    sb.append(line, 0, line.length - MARK.length)
+                    break
+                }
                 if (sb.isNotEmpty()) sb.append('\n')
                 sb.append(line)
             }

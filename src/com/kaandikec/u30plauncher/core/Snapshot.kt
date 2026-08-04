@@ -60,6 +60,12 @@ data class Snapshot(
      * Etiket buna gore secilir: donem ayin 1'inde baslamiyorsa "BU AY"
      * yaniltici olur, gosterilen pencere iki takvim ayina yayilir.
      */
+    /** En cok CPU yiyen surecin adi; yoksa bos. */
+    val topProcName: String = "",
+
+    /** O surecin toplam CPU icindeki yuzdesi, ONDA BIRLIK; yoksa UNKNOWN. */
+    val topProcPercent: Int = UNKNOWN,
+
     val cycleDay: Int = 1,
 
     /** Donem veri limiti (bayt); 0 = sinirsiz. */

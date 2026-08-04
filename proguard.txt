@@ -9,3 +9,9 @@
 # TelephonyCallback arayuzleri yansimayla cozulur
 -keep class * extends android.telephony.TelephonyCallback { *; }
 -keep interface android.telephony.TelephonyCallback$* { *; }
+
+# app_process bu sinifi ADA GORE yukluyor; hicbir Kotlin cagrisi yok, R8 aksi
+# halde budar ve calistirinca ClassNotFoundException verir.
+-keep class com.kaandikec.u30plauncher.root.SoftApTool {
+    public static void main(java.lang.String[]);
+}

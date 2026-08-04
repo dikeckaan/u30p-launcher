@@ -43,8 +43,10 @@ class SettingsPage(
         private const val DETAIL = 7
         private const val ENGINEERING = 8
         private const val SYSTEM = 9
-        private const val DEVICE_SETTINGS = 10
-        private const val ROW_COUNT = 11
+        private const val HISTORY = 10
+        private const val SMS = 11
+        private const val DEVICE_SETTINGS = 12
+        private const val ROW_COUNT = 13
 
         /**
          * Kilit satirinda sifre belirlemeyi acan basili tutma suresi.
@@ -164,6 +166,8 @@ class SettingsPage(
         DETAIL -> str(R.string.setting_detail_page)
         ENGINEERING -> str(R.string.setting_engineering_page)
         SYSTEM -> str(R.string.setting_system_page)
+        HISTORY -> str(R.string.setting_history_page)
+        SMS -> str(R.string.setting_sms_page)
         else -> str(R.string.device_settings)
     }
 
@@ -233,6 +237,8 @@ class SettingsPage(
             }
             DETAIL -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
             ENGINEERING -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
+            HISTORY -> sb.append(str(if (prefs.historyPage) R.string.on else R.string.off))
+            SMS -> sb.append(str(if (prefs.smsPage) R.string.on else R.string.off))
             else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
         }
     }
@@ -357,6 +363,8 @@ class SettingsPage(
             DETAIL -> prefs.detailPage = !prefs.detailPage
             ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage
             SYSTEM -> prefs.systemPage = !prefs.systemPage
+            HISTORY -> prefs.historyPage = !prefs.historyPage
+            SMS -> prefs.smsPage = !prefs.smsPage
             DEVICE_SETTINGS -> {
                 try {
                     context.startActivity(

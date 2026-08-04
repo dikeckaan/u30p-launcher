@@ -82,4 +82,25 @@
     <string name="this_period">DÖNEM</string>
     <string name="setting_data_limit">Veri limiti</string>
     <string name="data_unlimited">Sınırsız</string>
+    <string name="app_menu_info">Uygulama bilgisi</string>
+    <string name="app_menu_uninstall">Kaldır</string>
+    <string name="dbm_suffix">dBm</string>
+    <string name="history_title">GEÇMİŞ</string>
+    <string name="sms_title">MESAJLAR</string>
+    <string name="sms_empty">mesaj yok</string>
+    <string name="sms_loading">yükleniyor</string>
+    <string name="sms_unreadable">okunamıyor</string>
+    <string name="sms_no_permission">READ_SMS izni yok</string>
+    <string name="sms_unknown_sender">bilinmeyen</string>
+    <string name="top_process">EN ÇOK CPU</string>
+    <string name="wifi_new_title">YENİ AĞ</string>
+    <string name="wifi_apply_confirm">kaydetmek için onayla</string>
+    <string name="wifi_applying">kaydediliyor…</string>
+    <string name="wifi_apply_failed">başarısız</string>
+    <string name="wifi_reboot_needed">yeniden başlat gerekli</string>
+    <string name="wifi_qr_failed">QR oluşmadı</string>
+    <string name="wifi_reset_title">İLK HÂLİNE DÖN</string>
+    <string name="setting_sms_page">Mesajlar sayfası</string>
+    <string name="setting_history_page">Geçmiş sayfası</string>
+    <string name="app_name">U30P</string>
 </resources>

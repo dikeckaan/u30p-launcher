@@ -8,6 +8,8 @@ import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.ActionsPage
 import com.kaandikec.u30plauncher.ui.AppsPage
 import com.kaandikec.u30plauncher.ui.CycleDayPage
+import com.kaandikec.u30plauncher.ui.HistoryPage
+import com.kaandikec.u30plauncher.ui.SmsPage
 import com.kaandikec.u30plauncher.ui.DetailPage
 import com.kaandikec.u30plauncher.ui.EngineeringPage
 import com.kaandikec.u30plauncher.ui.PageView
@@ -58,6 +60,8 @@ class LauncherActivity : Activity() {
     private lateinit var settingsPage: SettingsPage
     private lateinit var unlockPage: UnlockPage
     private lateinit var cycleDayPage: CycleDayPage
+    private lateinit var smsPage: SmsPage
+    private lateinit var historyPage: HistoryPage
 
     /**
      * Ekran kapanir kapanmaz kilitle.
@@ -128,6 +132,8 @@ class LauncherActivity : Activity() {
         actionsPage.onStockUiOpened = { prefs.stockUiOpen = true }
         appsPage = AppsPage(this)
         wifiPage = WifiPage(this)
+        smsPage = SmsPage(this)
+        historyPage = HistoryPage(this)
         settingsPage = SettingsPage(
             this, prefs,
             { scheduleRelock() },
@@ -276,6 +282,7 @@ class LauncherActivity : Activity() {
         if (prefs.detailPage) list.add(DetailPage(this))
         if (prefs.engineeringPage) list.add(EngineeringPage(this))
         if (prefs.systemPage) list.add(SystemPage(this))
+        if (prefs.historyPage) list.add(historyPage)
         pager.setPages(list)
         pager.longPressEnabled = true
         pager.locked = locked
@@ -293,13 +300,19 @@ class LauncherActivity : Activity() {
 
     private fun showSystem() {
         mode = Mode.SYSTEM
-        pager.setPages(listOf(actionsPage, wifiPage, settingsPage))
+        // Mesajlar en sona: ayarlar 2. sirada kalmali, donuslerde
+        // `pager.index = 2` oraya gidiyor.
+        val list = ArrayList<PageView>(4)
+        list.add(actionsPage); list.add(wifiPage); list.add(settingsPage)
+        if (prefs.smsPage) list.add(smsPage)
+        pager.setPages(list)
         pager.longPressEnabled = false
         actionsPage.update(hub.snapshot)
         actionsPage.refreshState()
         wifiPage.update(hub.snapshot)
         wifiPage.refreshState()
         settingsPage.refreshState()
+        if (prefs.smsPage) smsPage.refreshState()
         scheduleRelock()
     }
 

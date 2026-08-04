@@ -161,6 +161,11 @@ class DataHub(ctx: Context) {
 
         adoptCycleDayOnce()
 
+        // En cok CPU yiyen surec: /proc `hidepid` ile bagli oldugu icin
+        // uygulama olarak taranamiyor, dokum root kabugundan aliniyor.
+        val procDump = RootShell.exec("cat /proc/[0-9]*/stat 2>/dev/null")
+        if (procDump != null) system.applyProcDump(procDump, system.cpuTotalTicks)
+
         // Hucre kimligi yalnizca API yolundan gelmiyorsa dumpsys'e bas
         if (telephony.pci == Snapshot.UNKNOWN && telephony.ci == Snapshot.UNKNOWN) {
             val dump = RootShell.exec(
@@ -291,6 +296,8 @@ class DataHub(ctx: Context) {
             txSpeed = net.txSpeed,
             todayBytes = today,
             monthBytes = month,
+            topProcName = system.topProcName,
+            topProcPercent = system.topProcPercent,
             cycleDay = prefs.cycleDay,
             dataLimitBytes = prefs.dataLimitMb.toLong() * 1024L * 1024L,
             batteryPct = battery.pct,

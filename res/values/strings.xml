@@ -92,4 +92,24 @@
     <string name="this_period">PERIOD</string>
     <string name="setting_data_limit">Data limit</string>
     <string name="data_unlimited">Unlimited</string>
+    <string name="app_menu_info">App info</string>
+    <string name="app_menu_uninstall">Uninstall</string>
+    <string name="dbm_suffix">dBm</string>
+    <string name="history_title">HISTORY</string>
+    <string name="sms_title">MESSAGES</string>
+    <string name="sms_empty">no messages</string>
+    <string name="sms_loading">loading</string>
+    <string name="sms_unreadable">unreadable</string>
+    <string name="sms_no_permission">READ_SMS not granted</string>
+    <string name="sms_unknown_sender">unknown</string>
+    <string name="top_process">TOP CPU</string>
+    <string name="wifi_new_title">NEW NETWORK</string>
+    <string name="wifi_apply_confirm">confirm to save</string>
+    <string name="wifi_applying">saving…</string>
+    <string name="wifi_apply_failed">failed</string>
+    <string name="wifi_reboot_needed">reboot to apply</string>
+    <string name="wifi_qr_failed">QR failed</string>
+    <string name="wifi_reset_title">RESTORE ORIGINAL</string>
+    <string name="setting_sms_page">Messages page</string>
+    <string name="setting_history_page">History page</string>
 </resources>

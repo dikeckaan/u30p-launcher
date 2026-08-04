@@ -55,15 +55,26 @@ class SystemPage(ctx: Context) : PageView(ctx) {
         appendUptime(sb, s.uptimeSec)
         Geom.kvCell(c, Geom.COL_L, 180f, str(R.string.uptime), sb, label, value)
 
+        // YUK (loadavg) kaldirildi: cihazda ~10 cekirdek is parcacigi
+        // (native_hang_detect, kworker, slog...) kalici D durumunda bekliyor,
+        // bu yuzden loadavg surekli ~10 gorunurken CPU %5 idi. Kullaniciya
+        // "sistem cokuyor" hissi veren yaniltici bir olcuydu. Yerine gercekten
+        // CPU yiyen sureci gosteriyoruz; D durumundakiler CPU harcamadigi icin
+        // listede cikmaz.
         sb.setLength(0)
-        if (s.loadAvgX100 == Snapshot.UNKNOWN) sb.append(str(R.string.unknown)) else {
-            sb.append(s.loadAvgX100 / 100)
+        if (s.topProcPercent == Snapshot.UNKNOWN || s.topProcName.isEmpty()) {
+            sb.append(str(R.string.unknown))
+            Geom.kvCell(c, Geom.COL_R, 180f, str(R.string.top_process), sb, label, value)
+        } else {
+            sb.append(s.topProcPercent / 10)
             sb.append('.')
-            val f = s.loadAvgX100 % 100
-            if (f < 10) sb.append('0')
-            sb.append(f)
+            sb.append(s.topProcPercent % 10)
+            sb.append('%')
+            // Etiket surec adi, deger yuzde. comm cekirdek tarafindan 15
+            // karaktere kisaltilir; dar sutuna sigar. Ayri baslik satirina
+            // 240 px'de yer yok.
+            Geom.kvCell(c, Geom.COL_R, 180f, s.topProcName, sb, label, value)
         }
-        Geom.kvCell(c, Geom.COL_R, 180f, str(R.string.load), sb, label, value)
     }
 
     private fun ramPercent(s: Snapshot): Int =
