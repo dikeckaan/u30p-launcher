@@ -7,6 +7,7 @@ import android.os.Looper
 import com.kaandikec.u30plauncher.store.Prefs
 import com.kaandikec.u30plauncher.ui.ActionsPage
 import com.kaandikec.u30plauncher.ui.AppsPage
+import com.kaandikec.u30plauncher.ui.CycleDayPage
 import com.kaandikec.u30plauncher.ui.DetailPage
 import com.kaandikec.u30plauncher.ui.EngineeringPage
 import com.kaandikec.u30plauncher.ui.PageView
@@ -46,7 +47,7 @@ class LauncherActivity : Activity() {
         private const val RELOCK_MS = 120_000L
     }
 
-    private enum class Mode { INFO, APPS, SYSTEM, UNLOCK }
+    private enum class Mode { INFO, APPS, SYSTEM, UNLOCK, CYCLE_DAY }
 
     private lateinit var prefs: Prefs
     private lateinit var hub: DataHub
@@ -56,6 +57,7 @@ class LauncherActivity : Activity() {
     private lateinit var wifiPage: WifiPage
     private lateinit var settingsPage: SettingsPage
     private lateinit var unlockPage: UnlockPage
+    private lateinit var cycleDayPage: CycleDayPage
 
     /**
      * Ekran kapanir kapanmaz kilitle.
@@ -130,7 +132,13 @@ class LauncherActivity : Activity() {
             this, prefs,
             { scheduleRelock() },
             { recreate() },
-            { pending -> showUnlock(enrol = true, mode = pending) }
+            { pending -> showUnlock(enrol = true, mode = pending) },
+            { showCycleDay() }
+        )
+        cycleDayPage = CycleDayPage(
+            this, prefs,
+            onPicked = { backToSettings() },
+            onCancel = { backToSettings() }
         )
         unlockPage = UnlockPage(
             this, prefs,
@@ -303,6 +311,7 @@ class LauncherActivity : Activity() {
             Mode.SYSTEM -> showInfo()
             Mode.APPS -> {}
             Mode.UNLOCK -> {}
+            Mode.CYCLE_DAY -> {}
         }
     }
 
@@ -313,6 +322,7 @@ class LauncherActivity : Activity() {
             Mode.APPS -> showInfo()
             Mode.SYSTEM -> {}
             Mode.UNLOCK -> {}
+            Mode.CYCLE_DAY -> {}
         }
     }
 
@@ -348,6 +358,21 @@ class LauncherActivity : Activity() {
             prefs.lockSecretMode = pendingLockMode
             pendingLockMode = -1
         }
+        showSystem()
+        pager.index = 2
+    }
+
+    /** Donem gunu secici; ayarlar satirindan acilir. */
+    private fun showCycleDay() {
+        mode = Mode.CYCLE_DAY
+        cycleDayPage.update(hub.snapshot)
+        pager.setPages(listOf(cycleDayPage))
+        pager.locked = false
+        pager.longPressEnabled = false
+        scheduleRelock()
+    }
+
+    private fun backToSettings() {
         showSystem()
         pager.index = 2
     }

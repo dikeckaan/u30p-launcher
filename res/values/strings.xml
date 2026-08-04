@@ -88,4 +88,6 @@
     <string name="lock_not_set">not set</string>
     <string name="lock_hold_to_set">hold to set</string>
     <string name="lock_is_set">set</string>
+    <string name="setting_cycle_day">Cycle start</string>
+    <string name="this_period">PERIOD</string>
 </resources>

@@ -8,6 +8,7 @@ import android.os.SystemClock
 import com.kaandikec.u30plauncher.core.BatteryEstimate
 import com.kaandikec.u30plauncher.core.CellIdentity
 import com.kaandikec.u30plauncher.core.CellIdentityParser
+import com.kaandikec.u30plauncher.core.CyclePeriod
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.core.UsageCalc
 import com.kaandikec.u30plauncher.source.BatterySource
@@ -210,9 +211,8 @@ class DataHub(ctx: Context) {
         stampCalendar()
         val minute = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
         val dayKey = cal.get(Calendar.YEAR) * 366 + cal.get(Calendar.DAY_OF_YEAR)
-        val monthKey = cal.get(Calendar.YEAR) * 12 + cal.get(Calendar.MONTH)
 
-        // Gun/ay sinirlarinin duvar saati karsiliklari; sinir asan bir delta
+        // Gun/donem sinirlarinin duvar saati karsiliklari; sinir asan bir delta
         // bunlara gore bolunuyor. `cal` burada geriye sariliyor, bir sonraki
         // rebuild yeniden damgaliyor.
         val nowMs = cal.timeInMillis
@@ -221,8 +221,13 @@ class DataHub(ctx: Context) {
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
         val dayStartMs = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, 1)
+
+        // Donem ayin 1'inde baslamayabilir; cihazin Ayarlar ekrani da fatura
+        // donemini kullaniyor, ayni pencereye bakalim.
+        stampCalendar()
+        CyclePeriod.applyStart(cal, prefs.cycleDay)
         val monthStartMs = cal.timeInMillis
+        val monthKey = CyclePeriod.key(cal)
 
         // Ilk basarili ornekten once wanTotal 0'dir; onu gercek bir okuma sanip
         // sayaci sifirlamayalim.
@@ -263,6 +268,7 @@ class DataHub(ctx: Context) {
             txSpeed = net.txSpeed,
             todayBytes = today,
             monthBytes = month,
+            cycleDay = prefs.cycleDay,
             batteryPct = battery.pct,
             batteryUa = battery.currentUa,
             batteryTempC = battery.tempC,

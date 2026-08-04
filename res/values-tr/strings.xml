@@ -78,4 +78,6 @@
     <string name="lock_not_set">ayarsız</string>
     <string name="lock_hold_to_set">belirlemek için basılı tut</string>
     <string name="lock_is_set">ayarlı</string>
+    <string name="setting_cycle_day">Dönem başı</string>
+    <string name="this_period">DÖNEM</string>
 </resources>

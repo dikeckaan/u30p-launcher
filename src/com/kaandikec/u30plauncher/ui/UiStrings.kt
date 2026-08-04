@@ -18,4 +18,5 @@ class UiStrings(ctx: Context) {
     val minuteShort: String = ctx.getString(R.string.minute_short)
     val today: String = ctx.getString(R.string.today)
     val thisMonth: String = ctx.getString(R.string.this_month)
+    val thisPeriod: String = ctx.getString(R.string.this_period)
 }

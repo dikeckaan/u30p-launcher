@@ -54,6 +54,14 @@ data class Snapshot(
     /** -1 = bilinmiyor (root yok) */
     val clients: Int = -1,
 
+    /**
+     * Faturalama doneminin basladigi ayin gunu.
+     *
+     * Etiket buna gore secilir: donem ayin 1'inde baslamiyorsa "BU AY"
+     * yaniltici olur, gosterilen pencere iki takvim ayina yayilir.
+     */
+    val cycleDay: Int = 1,
+
     /** Saat dakika hassasiyetinde; saniye degisimi cizim tetiklemesin. */
     val clockMinuteOfDay: Int = 0,
 

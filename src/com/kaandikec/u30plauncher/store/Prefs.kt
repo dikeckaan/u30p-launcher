@@ -22,6 +22,14 @@ class Prefs(ctx: Context) {
         const val LOCK_PATTERN = 1
         const val LOCK_PIN = 2
         const val LOCK_COUNT = 3
+        /**
+         * Faturalama donemi baslangic gunu icin ust sinir.
+         *
+         * 28 ile sinirli: 29-31 her ayda yok ve "ayin 31'i" secen biri Subat'ta
+         * sessizce baska bir gune kayardi. 28 her ayda var.
+         */
+        const val CYCLE_DAY_MAX = 28
+
         const val NAME = "u30p"
     }
 
@@ -30,6 +38,11 @@ class Prefs(ctx: Context) {
     var theme: Int
         get() = sp.getInt("theme", THEME_STACKED).coerceIn(0, THEME_COUNT - 1)
         set(v) { sp.edit().putInt("theme", v).apply() }
+
+    /** Faturalama doneminin basladigi ayin gunu (1..28). */
+    var cycleDay: Int
+        get() = sp.getInt("cycle_day", 1).coerceIn(1, CYCLE_DAY_MAX)
+        set(v) { sp.edit().putInt("cycle_day", v.coerceIn(1, CYCLE_DAY_MAX)).apply() }
 
     var refreshMs: Int
         get() = sp.getInt("refresh_ms", 1000)

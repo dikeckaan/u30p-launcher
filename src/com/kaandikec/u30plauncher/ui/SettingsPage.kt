@@ -24,7 +24,8 @@ class SettingsPage(
     private val prefs: Prefs,
     private val onChanged: () -> Unit,
     private val onLanguageChanged: () -> Unit,
-    private val onEnrolLock: (Int) -> Unit
+    private val onEnrolLock: (Int) -> Unit,
+    private val onPickCycleDay: () -> Unit
 ) : PageView(ctx) {
 
     companion object {
@@ -37,11 +38,12 @@ class SettingsPage(
         private const val REFRESH = 2
         private const val LANGUAGE = 3
         private const val LOCK = 4
-        private const val DETAIL = 5
-        private const val ENGINEERING = 6
-        private const val SYSTEM = 7
-        private const val DEVICE_SETTINGS = 8
-        private const val ROW_COUNT = 9
+        private const val CYCLE_DAY = 5
+        private const val DETAIL = 6
+        private const val ENGINEERING = 7
+        private const val SYSTEM = 8
+        private const val DEVICE_SETTINGS = 9
+        private const val ROW_COUNT = 10
 
         /**
          * Kilit satirinda sifre belirlemeyi acan basili tutma suresi.
@@ -156,6 +158,7 @@ class SettingsPage(
         REFRESH -> str(R.string.setting_refresh)
         LANGUAGE -> str(R.string.setting_language)
         LOCK -> str(R.string.setting_lock)
+        CYCLE_DAY -> str(R.string.setting_cycle_day)
         DETAIL -> str(R.string.setting_detail_page)
         ENGINEERING -> str(R.string.setting_engineering_page)
         SYSTEM -> str(R.string.setting_system_page)
@@ -214,6 +217,7 @@ class SettingsPage(
                     )
                 }
             }
+            CYCLE_DAY -> sb.append(prefs.cycleDay)
             DETAIL -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
             ENGINEERING -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
             else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
@@ -326,6 +330,10 @@ class SettingsPage(
                 // .requiresChallenge sir yoksa meydan okuma gostermez, yani
                 // kimse disarida kalmaz.
                 prefs.lockMode = (prefs.lockMode + 1) % Prefs.LOCK_COUNT
+            }
+            CYCLE_DAY -> {
+                onPickCycleDay()
+                return
             }
             DETAIL -> prefs.detailPage = !prefs.detailPage
             ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage

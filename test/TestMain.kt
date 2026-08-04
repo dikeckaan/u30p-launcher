@@ -6,6 +6,7 @@ fun main() {
     FmtTest.run()
     ProcNetParserTest.run()
     UsageCalcTest.run()
+    CyclePeriodTest.run()
     SnapshotTest.run()
     CellIdentityParserTest.run()
     WifiInfoParserTest.run()

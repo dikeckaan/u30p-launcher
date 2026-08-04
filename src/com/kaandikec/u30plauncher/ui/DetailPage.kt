@@ -26,7 +26,11 @@ class DetailPage(ctx: Context) : PageView(ctx) {
 
         sb.setLength(0)
         Fmt.appendBytes(sb, s.monthBytes)
-        Geom.kvCell(c, Geom.COL_R, 54f, str(R.string.this_month), sb, label, value)
+        Geom.kvCell(
+            c, Geom.COL_R, 54f,
+            str(if (s.cycleDay == 1) R.string.this_month else R.string.this_period),
+            sb, label, value
+        )
 
         sb.setLength(0)
         if (s.clients < 0) sb.append('—') else sb.append(s.clients)
