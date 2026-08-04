@@ -46,6 +46,14 @@ object SoftApTool {
     fun main(args: Array<String>) {
         var code = 1
         try {
+            // stopTethering/startTethering icerideki geri cagri icin Handler
+            // kuruyor; Handler da cagiran thread'de bir Looper istiyor.
+            // `app_process` ile calisan bir sinifta main thread'in Looper'i
+            // YOK ve cagri "Can't create handler inside thread ... that has
+            // not called Looper.prepare()" ile dusuyordu. ZTE'nin uygulamasi
+            // normal bir Android surecinde kostugu icin bu sorunu hic
+            // gormuyor.
+            if (android.os.Looper.myLooper() == null) android.os.Looper.prepareMainLooper()
             code = run(args)
         } catch (t: Throwable) {
             println("U30P_SOFTAP_ERR:" + t.javaClass.simpleName + ":" + (t.message ?: ""))
@@ -144,8 +152,18 @@ object SoftApTool {
         if (!started) started = startViaConnectivity(cm)
         started && waitState(wm, wmCls, 13)
     } catch (t: Throwable) {
-        println("U30P_SOFTAP_ERR:restart:" + t.javaClass.simpleName)
+        // InvocationTargetException yalnizca SARMALAYICI; tek basina adini
+        // basmak gercek sebebi gizliyor ve teshis edilemez hale getiriyor.
+        println("U30P_SOFTAP_ERR:restart:" + describe(t))
         false
+    }
+
+    private fun describe(t: Throwable): String {
+        var e: Throwable = t
+        while (e is java.lang.reflect.InvocationTargetException && e.cause != null) {
+            e = e.cause!!
+        }
+        return e.javaClass.name + ":" + (e.message ?: "")
     }
 
     private fun startViaTetheringManager(ctx: android.content.Context): Boolean = try {
@@ -160,7 +178,8 @@ object SoftApTool {
             java.util.concurrent.Executor::class.java, cbCls
         ).also { it.isAccessible = true }.invoke(tm, 0, exec, cb)
         true
-    } catch (_: Throwable) {
+    } catch (t: Throwable) {
+        println("U30P_SOFTAP_ERR:start_tm:" + describe(t))
         false
     }
 
@@ -171,7 +190,8 @@ object SoftApTool {
             Boolean::class.javaPrimitiveType, cbCls
         ).also { it.isAccessible = true }.invoke(cm, 0, false, null)
         true
-    } catch (_: Throwable) {
+    } catch (t: Throwable) {
+        println("U30P_SOFTAP_ERR:start_cm:" + describe(t))
         false
     }
 
