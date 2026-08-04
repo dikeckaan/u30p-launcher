@@ -21,9 +21,10 @@ import android.os.IBinder
  * Degerler base64 ile geciyor: kabuk satirina giren bir parolada $ ` " \ veya
  * bosluk kacisi unutuldugunda parola sessizce baska bir seye donusurdu.
  *
- * Cikti tek satir: OK / INVALID / FAIL / ERR:<mesaj>. Cagiran yalnizca "OK"
- * gordugunde basari sayar — "OK" gecen bir yigin izini basariymis gibi
- * okumamak icin isaret bilerek kisa ve tam eslesmeli tutuldu.
+ * Cikti tek satir ve hepsi "U30P_SOFTAP_" onekli: _OK / _INVALID / _FAIL /
+ * _ERR:<mesaj>. Onek sart: cagiran RootShell stderr'i stdout'a katiyor ve
+ * duz "OK" arandiginda icinde OK gecen herhangi bir kabuk metni basari
+ * sayilirdi.
  *
  * ONEMLI: Yazma KALICIDIR ama CALISAN AP'ye uygulanmaz. SoftApManager
  * SSID/parola degisimi icin "requires restart" deyip yok sayiyor; uygulanmasi
@@ -32,13 +33,22 @@ import android.os.IBinder
 object SoftApTool {
     private const val PKG = "com.kaandikec.u30plauncher"
 
+    /**
+     * Basari isareti. Duz "OK" DEGIL: cagiran RootShell stderr'i stdout'a
+     * katiyor ve icinde "OK" gecen herhangi bir kabuk/yigin metni basari
+     * sayilirdi. WifiPage bu dizeyi ariyor — ikisi ayrisirsa yazma BASARILI
+     * olur ama arayuz "basarisiz" der; gercekten oldu ve kullanici
+     * gormedigi bir paroloya gecmis olurdu.
+     */
+    private const val OK = "U30P_SOFTAP_OK"
+
     @JvmStatic
     fun main(args: Array<String>) {
         var code = 1
         try {
             code = run(args)
         } catch (t: Throwable) {
-            println("ERR:" + t.javaClass.simpleName + ":" + (t.message ?: ""))
+            println("U30P_SOFTAP_ERR:" + t.javaClass.simpleName + ":" + (t.message ?: ""))
         }
         // app_process main() bitince kendiliginden CIKMAZ: binder ve Looper is
         // parcaciklari ayakta kalir, cagiran `su` kabugu okumada sonsuza kadar
@@ -49,7 +59,7 @@ object SoftApTool {
 
     private fun run(args: Array<String>): Int {
         if (args.size < 2) {
-            println("ERR:args")
+            println("U30P_SOFTAP_ERR:args")
             return 2
         }
         val ssid = decode(args[0])
@@ -84,14 +94,106 @@ object SoftApTool {
             true
         }
         if (!valid) {
-            println("INVALID")
+            println("U30P_SOFTAP_INVALID")
             return 3
         }
 
         val ok = itf.getDeclaredMethod("setSoftApConfiguration", sacClass, String::class.java)
             .invoke(wifi, cfg, PKG) as Boolean
-        println(if (ok) "OK" else "FAIL")
-        return if (ok) 0 else 4
+        if (!ok) {
+            println("U30P_SOFTAP_FAIL")
+            return 4
+        }
+
+        // Yazma kalici ama CALISAN AP'ye uygulanmaz: SoftApManager SSID/parola
+        // degisimi icin "requires restart" deyip yok sayiyor. ZTE'nin kendi web
+        // arayuzu de tam olarak burada hotspot'u devir daim ettiriyor; ayni
+        // diziyi izliyoruz ki kullanici yeniden baslatmak zorunda kalmasin.
+        if (args.size > 2 && args[2] == "restart") {
+            if (restartTethering()) println("U30P_SOFTAP_RESTARTED")
+            else println("U30P_SOFTAP_NORESTART")
+        }
+        println(OK)
+        return 0
+    }
+
+
+    /**
+     * ZTE'nin sirasi: stopTethering(0) -> AP kapanana kadar bekle ->
+     * startTethering(0, false, cb) -> AP acilana kadar bekle. Bekleme
+     * yoklamayla yapiliyor, callback beklenmiyor (ZTE de oyle yapiyor).
+     *
+     * Baslatma basarisiz olursa hotspot KAPALI kalir; cagiran bunu
+     * "U30P_SOFTAP_NORESTART" ile ogrenir ve kullaniciya yeniden baslatmasini
+     * soyleyebilir.
+     */
+    private fun restartTethering(): Boolean = try {
+        val ctx = systemContext()
+        val cm = ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+        val wm = ctx.getSystemService(android.content.Context.WIFI_SERVICE)
+        val wmCls = wm.javaClass
+
+        cm.javaClass.getMethod("stopTethering", Int::class.javaPrimitiveType)
+            .also { it.isAccessible = true }
+            .invoke(cm, 0)
+        waitState(wm, wmCls, 11)
+
+        // OnStartTetheringCallback soyut bir SINIF, Proxy ile uretilemez.
+        // TetheringManager'in karsiligi ise arayuz; once onu deneriz.
+        var started = startViaTetheringManager(ctx)
+        if (!started) started = startViaConnectivity(cm)
+        started && waitState(wm, wmCls, 13)
+    } catch (t: Throwable) {
+        println("U30P_SOFTAP_ERR:restart:" + t.javaClass.simpleName)
+        false
+    }
+
+    private fun startViaTetheringManager(ctx: android.content.Context): Boolean = try {
+        val tm = ctx.getSystemService("tethering")
+        val cbCls = Class.forName("android.net.TetheringManager\$StartTetheringCallback")
+        val cb = java.lang.reflect.Proxy.newProxyInstance(
+            cbCls.classLoader, arrayOf(cbCls)
+        ) { _, _, _ -> null }
+        val exec = java.util.concurrent.Executor { it.run() }
+        tm.javaClass.getMethod(
+            "startTethering", Int::class.javaPrimitiveType,
+            java.util.concurrent.Executor::class.java, cbCls
+        ).also { it.isAccessible = true }.invoke(tm, 0, exec, cb)
+        true
+    } catch (_: Throwable) {
+        false
+    }
+
+    private fun startViaConnectivity(cm: Any): Boolean = try {
+        val cbCls = Class.forName("android.net.ConnectivityManager\$OnStartTetheringCallback")
+        cm.javaClass.getMethod(
+            "startTethering", Int::class.javaPrimitiveType,
+            Boolean::class.javaPrimitiveType, cbCls
+        ).also { it.isAccessible = true }.invoke(cm, 0, false, null)
+        true
+    } catch (_: Throwable) {
+        false
+    }
+
+    /** 40 x 500 ms = 20 sn; ZTE ile ayni pencere. */
+    private fun waitState(wm: Any, cls: Class<*>, want: Int): Boolean {
+        val m = try {
+            cls.getMethod("getWifiApState").also { it.isAccessible = true }
+        } catch (_: Throwable) {
+            return false
+        }
+        for (i in 0 until 40) {
+            if ((m.invoke(wm) as Int) == want) return true
+            Thread.sleep(500)
+        }
+        return false
+    }
+
+    private fun systemContext(): android.content.Context {
+        val at = Class.forName("android.app.ActivityThread")
+        val thread = at.getMethod("systemMain").also { it.isAccessible = true }.invoke(null)
+        return at.getMethod("getSystemContext").also { it.isAccessible = true }
+            .invoke(thread) as android.content.Context
     }
 
     private fun decode(b64: String): String =

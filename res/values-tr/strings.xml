@@ -103,4 +103,8 @@
     <string name="setting_sms_page">Mesajlar sayfası</string>
     <string name="setting_history_page">Geçmiş sayfası</string>
     <string name="app_name">U30P</string>
+    <string name="wifi_applied">uygulandı, yeniden bağlan</string>
+    <string name="wifi_bar_qr">QR</string>
+    <string name="wifi_bar_new">yeni</string>
+    <string name="wifi_bar_reset">sıfırla</string>
 </resources>

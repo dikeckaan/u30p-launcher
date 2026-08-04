@@ -65,7 +65,24 @@ class WifiPage(ctx: Context) : PageView(ctx) {
         private const val HOST_KEY = "hostname: "
 
         private const val LIST_TOP = 116f
-        private const val LIST_BOTTOM = 208f
+        private const val LIST_BOTTOM = 186f
+
+        /**
+         * Alt aksiyon seridi.
+         *
+         * Once bu isler sag kenardaki 10 px'lik ikonlara ve GIZLI uzun basmaya
+         * bagliydi; yuvarlak ekranda kenara yakin kucuk hedefe basmak zor ve
+         * uzun basmanin varligi hicbir yerde yazmiyordu. Uc is de artik
+         * etiketli ve genis hedeflerle gorunur.
+         */
+        private const val BAR_CY = 202f
+        private const val BAR_LABEL_Y = 220f
+        private val BAR_CX = floatArrayOf(52f, 120f, 188f)
+        private const val BAR_HIT_X = 34f
+        private const val BAR_HIT_Y = 26f
+        private const val BAR_QR = 0
+        private const val BAR_NEW = 1
+        private const val BAR_RESET = 2
         private const val ROW_H = 30f
 
         private const val ZONE_SSID = 0
@@ -77,6 +94,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
         private const val APPLY_IDLE = 0
         private const val APPLY_RUNNING = 1
+        private const val APPLY_LIVE = 9
         private const val APPLY_OK = 2
         private const val APPLY_FAIL = 3
 
@@ -114,6 +132,9 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
         /** Aracin basarida bastigi isaret; baska hicbir sey basari sayilmaz. */
         private const val TOOL_OK = "U30P_SOFTAP_OK"
+
+        /** Hotspot devir daim edildi; kullanicinin yeniden baslatmasi gerekmiyor. */
+        private const val TOOL_RESTARTED = "U30P_SOFTAP_RESTARTED"
     }
 
     private val title = ThemeUtil.text(10f, Palette.DIM2)
@@ -133,6 +154,13 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
     /** Karekod ekrani beyaz; oradaki carpi koyu olmali yoksa kayboluyor. */
     private val closeOnWhite = ThemeUtil.stroke(Palette.BG, 2.5f)
+
+    /** Hotspot devir daim edilince gosterilen olumlu metin. */
+    private val okTextPaint = ThemeUtil.text(9f, Palette.DOWN)
+    private val barLabel = ThemeUtil.text(8.5f, Palette.DIM)
+    private val barLabelDim = ThemeUtil.text(8.5f, Palette.DIM2)
+    private val dimStroke = ThemeUtil.stroke(Palette.DIM2, 1.5f)
+    private val dimFill = ThemeUtil.fill(Palette.DIM2)
     private val cancelPaint = ThemeUtil.stroke(Palette.DIM, 2.5f)
     private val okPaint = ThemeUtil.stroke(Palette.DOWN, 2.5f)
 
@@ -190,6 +218,26 @@ class WifiPage(ctx: Context) : PageView(ctx) {
     override val wantsRawTouch: Boolean get() = true
 
     /** Kilit acildiginda cagrilir. SSID ve parola nadiren degisir, bir kez okunur. */
+    /**
+     * Sayfa ekrandan cikinca ust katmanlari kapat.
+     *
+     * `refreshState` yalnizca sistem seridine GIRERKEN cagriliyor; kullanici
+     * zaten seritteyken sayfalar arasinda kaydirdiginda hic calismiyordu ve
+     * WiFi sayfasi birakildigi katmanla geri geliyordu. Gercekte oldu: sayfa
+     * "fabrikaya don" onay ekraninda acildi ve orada duran onay tusu, farkinda
+     * olmadan basilirsa kimligi uygulardi.
+     *
+     * Pager ekran disindaki sayfalari GONE yapiyor; kanca olarak o kullanildi.
+     */
+    override fun onVisibilityChanged(changedView: android.view.View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (changedView !== this || visibility == VISIBLE) return
+        if (view != VIEW_MAIN || applyState != APPLY_IDLE) {
+            view = VIEW_MAIN
+            applyState = APPLY_IDLE
+        }
+    }
+
     fun refreshState() {
         // Ust katmanlar sayfadan cikilinca kapanmali; kullanici bir sonraki
         // gelisinde beklemedigi bir karekodla karsilasmasin. Burada acikca
@@ -207,6 +255,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
             }
         }
         refreshClients(force = true)
+        loadFactory()
         refreshNames(force = true)
     }
 
@@ -327,11 +376,9 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
         Geom.centerText(c, str(R.string.wifi_network), 34f, label)
         Geom.centerText(c, ap.ssid, 45f, ssidPaint)
-        randomIcon(c, 203f, 50f)
 
         Geom.centerText(c, str(R.string.wifi_password), 66f, label)
         Geom.centerText(c, ap.passphrase, 77f, passPaint)
-        qrIcon(c, 198f, 79f)
 
         Geom.hairline(c, 98f, 74f, hair)
 
@@ -347,6 +394,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
         if (clients.isEmpty()) {
             Geom.centerText(c, str(R.string.wifi_no_clients), 140f, hint)
+            drawBar(c)
             return
         }
 
@@ -365,6 +413,42 @@ class WifiPage(ctx: Context) : PageView(ctx) {
         c.restore()
 
         drawScrollbar(c)
+        drawBar(c)
+    }
+
+    /**
+     * Alt aksiyon seridi: karekod / yeni kimlik / fabrikaya don.
+     *
+     * Hedefler 68x52 px; yuvarlak ekranda kenara tasmayacak sekilde ic tarafa
+     * cekildi. Fabrika dugmesi degerler okunamadiysa soluk cizilir ve
+     * dokunusa yanit vermez — basilabilir gorunup hicbir sey yapmamasi daha
+     * kotu olurdu.
+     */
+    private fun drawBar(c: Canvas) {
+        val factoryReady = factorySsid.isNotEmpty() && factoryKey.isNotEmpty()
+        Geom.hairline(c, BAR_CY - 20f, 80f, hair)
+
+        qrIcon(c, BAR_CX[BAR_QR], BAR_CY)
+        Geom.centerText(c, str(R.string.wifi_bar_qr), BAR_LABEL_Y, barLabel, BAR_CX[BAR_QR])
+
+        randomIcon(c, BAR_CX[BAR_NEW], BAR_CY)
+        Geom.centerText(c, str(R.string.wifi_bar_new), BAR_LABEL_Y, barLabel, BAR_CX[BAR_NEW])
+
+        val cx = BAR_CX[BAR_RESET]
+        iconRect.set(cx - 7f, BAR_CY - 7f, cx + 7f, BAR_CY + 7f)
+        c.drawArc(iconRect, 120f, 300f, false, if (factoryReady) iconStroke else dimStroke)
+        Geom.arrow(c, cx - 6f, BAR_CY - 5f, 4f, true, if (factoryReady) iconFill else dimFill)
+        Geom.centerText(
+            c, str(R.string.wifi_bar_reset), BAR_LABEL_Y,
+            if (factoryReady) barLabel else barLabelDim, cx
+        )
+    }
+
+    /** Serit hedefi; -1 = serit disi. */
+    private fun barAt(x: Float, y: Float): Int {
+        if (Math.abs(y - BAR_CY - 6f) > BAR_HIT_Y) return -1
+        for (i in 0 until 3) if (Math.abs(x - BAR_CX[i]) <= BAR_HIT_X) return i
+        return -1
     }
 
     /**
@@ -539,6 +623,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
         when (applyState) {
             APPLY_IDLE -> Geom.centerText(c, str(R.string.wifi_apply_confirm), 130f, hint)
             APPLY_RUNNING -> Geom.centerText(c, str(R.string.wifi_applying), 130f, hint)
+            APPLY_LIVE -> Geom.centerText(c, str(R.string.wifi_applied), 130f, okTextPaint)
             APPLY_OK -> Geom.centerText(c, str(R.string.wifi_reboot_needed), 130f, warnPaint)
             else -> Geom.centerText(c, str(R.string.wifi_apply_failed), 130f, errPaint)
         }
@@ -604,16 +689,19 @@ class WifiPage(ctx: Context) : PageView(ctx) {
         // yoklamada oradan okuyor. Arac cikmazsa okuma sonsuza kadar bloke
         // olur ve istemci sayisi, pil, netpolicy dahil TUM root okumalari
         // durur. `timeout` cihazda var (toybox).
-        val cmd = "timeout 15 env CLASSPATH='" + apk + "' app_process / " + SOFTAP_TOOL +
-            " " + b64(ssid) + " " + b64(pass)
+        val cmd = "timeout 60 env CLASSPATH='" + apk + "' app_process / " + SOFTAP_TOOL +
+            " " + b64(ssid) + " " + b64(pass) + " restart"
         RootShell.async(cmd) { out ->
             if (token != applyToken) return@async
             // Basari isareti "OK" gibi genel bir sozcuk degil: su kabugu ve
             // app_process hata yolu kendi metinlerini ayni akisa yaziyor
             // (RootShell stderr'i stdout'a katiyor) ve icinde "OK" gecen bir
             // yigin izi basariymis gibi okunurdu.
-            applyState =
-                if (out != null && out.contains(TOOL_OK)) APPLY_OK else APPLY_FAIL
+            applyState = when {
+                out == null || !out.contains(TOOL_OK) -> APPLY_FAIL
+                out.contains(TOOL_RESTARTED) -> APPLY_LIVE
+                else -> APPLY_OK
+            }
             invalidate()
         }
     }
@@ -688,6 +776,19 @@ class WifiPage(ctx: Context) : PageView(ctx) {
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 clearPendingLongPress()
+                if (event.actionMasked == MotionEvent.ACTION_UP && !dragging) {
+                    when (barAt(event.x, event.y)) {
+                        BAR_QR -> openQr()
+                        BAR_NEW -> openNew()
+                        // Degerler okunamadiysa sessizce yok say; dugme zaten
+                        // soluk cizilmis durumda.
+                        BAR_RESET -> if (factorySsid.isNotEmpty() && factoryKey.isNotEmpty()) {
+                            openNew()
+                            useFactory()
+                        }
+                    }
+                    invalidate()
+                }
                 pressedZone = -1
                 dragging = false
             }

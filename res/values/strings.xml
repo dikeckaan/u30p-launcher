@@ -112,4 +112,8 @@
     <string name="wifi_reset_title">RESTORE ORIGINAL</string>
     <string name="setting_sms_page">Messages page</string>
     <string name="setting_history_page">History page</string>
+    <string name="wifi_applied">applied, reconnect</string>
+    <string name="wifi_bar_qr">QR</string>
+    <string name="wifi_bar_new">new</string>
+    <string name="wifi_bar_reset">reset</string>
 </resources>
