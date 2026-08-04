@@ -11,6 +11,14 @@ import java.util.Calendar
  */
 object CyclePeriod {
     /**
+     * Donem baslangic gunu icin ust sinir.
+     *
+     * 28 ile sinirli: 29-31 her ayda yok ve "ayin 31'i" secen biri Subat'ta
+     * sessizce baska bir gune kayardi. 28 her ayda var.
+     */
+    const val MAX_DAY = 28
+
+    /**
      * `cal` SIMDIYE damgalanmis gelmeli; cagri sonunda donem baslangicina
      * ayarlanmis olur (gun basi, saat 00:00).
      *

@@ -22,13 +22,18 @@ class Prefs(ctx: Context) {
         const val LOCK_PATTERN = 1
         const val LOCK_PIN = 2
         const val LOCK_COUNT = 3
+        /** Donem baslangic gunu ust siniri; gerekce core/CyclePeriod'da. */
+        const val CYCLE_DAY_MAX = com.kaandikec.u30plauncher.core.CyclePeriod.MAX_DAY
+
         /**
-         * Faturalama donemi baslangic gunu icin ust sinir.
+         * Veri limiti secenekleri (MB). 0 = SINIRSIZ.
          *
-         * 28 ile sinirli: 29-31 her ayda yok ve "ayin 31'i" secen biri Subat'ta
-         * sessizce baska bir gune kayardi. 28 her ayda var.
+         * Varsayilan sinirsiz: cihaz bir MiFi ve cogu kullanim kotasiz; her
+         * acilista uyari gostermek gurultu olurdu.
          */
-        const val CYCLE_DAY_MAX = 28
+        val DATA_LIMIT_OPTIONS = intArrayOf(
+            0, 1024, 2048, 5120, 10240, 20480, 51200, 102400
+        )
 
         const val NAME = "u30p"
     }
@@ -43,6 +48,20 @@ class Prefs(ctx: Context) {
     var cycleDay: Int
         get() = sp.getInt("cycle_day", 1).coerceIn(1, CYCLE_DAY_MAX)
         set(v) { sp.edit().putInt("cycle_day", v.coerceIn(1, CYCLE_DAY_MAX)).apply() }
+
+    /** Donem veri limiti (MB); 0 = sinirsiz. */
+    var dataLimitMb: Int
+        get() = sp.getInt("data_limit_mb", 0)
+        set(v) { sp.edit().putInt("data_limit_mb", v).apply() }
+
+    /**
+     * Donem gunu cihazin politikasindan bir kez alindi mi?
+     *
+     * Yalnizca ilk seferde alinir; sonra kullanicinin secimi esastir.
+     */
+    var cycleDayAdopted: Boolean
+        get() = sp.getBoolean("cycle_day_adopted", false)
+        set(v) { sp.edit().putBoolean("cycle_day_adopted", v).apply() }
 
     var refreshMs: Int
         get() = sp.getInt("refresh_ms", 1000)

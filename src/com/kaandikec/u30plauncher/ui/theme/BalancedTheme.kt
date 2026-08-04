@@ -88,7 +88,7 @@ object BalancedTheme : Theme {
         Geom.kvCell(c, Geom.COL_L, 172f, t.today, sb, label, value)
 
         sb.setLength(0)
-        Fmt.appendBytes(sb, s.monthBytes)
+        Fmt.appendBytesWithLimit(sb, s.monthBytes, s.dataLimitBytes)
         Geom.kvCell(
             c, Geom.COL_R, 172f,
             if (s.cycleDay == 1) t.thisMonth else t.thisPeriod,

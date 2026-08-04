@@ -90,4 +90,6 @@
     <string name="lock_is_set">set</string>
     <string name="setting_cycle_day">Cycle start</string>
     <string name="this_period">PERIOD</string>
+    <string name="setting_data_limit">Data limit</string>
+    <string name="data_unlimited">Unlimited</string>
 </resources>

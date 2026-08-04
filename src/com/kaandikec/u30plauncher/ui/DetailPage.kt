@@ -15,6 +15,7 @@ class DetailPage(ctx: Context) : PageView(ctx) {
     private val value = ThemeUtil.text(14f, Palette.FG)
     private val valueGreen = ThemeUtil.text(14f, Palette.DOWN)
     private val hair = ThemeUtil.hairline(Palette.HAIRLINE)
+    private val overLimit = ThemeUtil.text(14f, Palette.WARN)
 
     override fun draw(c: Canvas, s: Snapshot) {
         Geom.centerText(c, str(R.string.detail_title), 22f, title)
@@ -25,11 +26,14 @@ class DetailPage(ctx: Context) : PageView(ctx) {
         Geom.kvCell(c, Geom.COL_L, 54f, str(R.string.today), sb, label, value)
 
         sb.setLength(0)
-        Fmt.appendBytes(sb, s.monthBytes)
+        Fmt.appendBytesWithLimit(sb, s.monthBytes, s.dataLimitBytes)
         Geom.kvCell(
             c, Geom.COL_R, 54f,
             str(if (s.cycleDay == 1) R.string.this_month else R.string.this_period),
-            sb, label, value
+            sb, label,
+            // Limit asildiysa deger uyari renginde; sinirsiz modda hicbir
+            // sey degismez.
+            if (s.dataLimitBytes > 0 && s.monthBytes >= s.dataLimitBytes) overLimit else value
         )
 
         sb.setLength(0)

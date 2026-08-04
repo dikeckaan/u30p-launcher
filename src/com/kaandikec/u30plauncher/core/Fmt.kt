@@ -57,6 +57,31 @@ object Fmt {
         return i
     }
 
+    /**
+     * "9.2/10 GB" — kullanim ve limit tek hucrede.
+     *
+     * Iki deger AYNI birimde yazilir (limitin birimi esas alinir); farkli
+     * birimlerde yazmak "980 MB / 10 GB" gibi karsilastirmasi zor bir metin
+     * uretiyordu. 240 px'de yer de yok.
+     */
+    fun appendBytesWithLimit(sb: StringBuilder, used: Long, limit: Long) {
+        if (limit <= 0) {
+            appendBytes(sb, used)
+            return
+        }
+        val i = unitIndexOf(limit, 1024.0, BYTE_UNITS.size)
+        var div = 1.0
+        repeat(i) { div *= 1024.0 }
+        val u = used / div
+        // appendDec olceklenmis tam sayi bekler; basamak sayisina gore
+        // olcegi de degistirmek gerek.
+        if (u < 100.0) appendDec(sb, Math.round(u * 10), 1) else appendDec(sb, Math.round(u), 0)
+        sb.append('/')
+        appendDec(sb, Math.round(limit / div), 0)
+        sb.append(' ')
+        sb.append(BYTE_UNITS[i])
+    }
+
     fun appendBytes(sb: StringBuilder, bytes: Long) {
         val i = appendScaledValue(sb, bytes, 1024.0, BYTE_UNITS.size)
         sb.append(' ')

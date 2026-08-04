@@ -9,6 +9,8 @@ import com.kaandikec.u30plauncher.core.BatteryEstimate
 import com.kaandikec.u30plauncher.core.CellIdentity
 import com.kaandikec.u30plauncher.core.CellIdentityParser
 import com.kaandikec.u30plauncher.core.CyclePeriod
+import com.kaandikec.u30plauncher.core.NetPolicy
+import com.kaandikec.u30plauncher.core.NetPolicyParser
 import com.kaandikec.u30plauncher.core.Snapshot
 import com.kaandikec.u30plauncher.core.UsageCalc
 import com.kaandikec.u30plauncher.source.BatterySource
@@ -157,6 +159,8 @@ class DataHub(ctx: Context) {
         // ARP tablosunda br0 (LAN kopru) uzerindeki girdiler
         clientsCached = RootShell.exec("grep -c ' br0\$' /proc/net/arp")?.trim()?.toIntOrNull() ?: -1
 
+        adoptCycleDayOnce()
+
         // Hucre kimligi yalnizca API yolundan gelmiyorsa dumpsys'e bas
         if (telephony.pci == Snapshot.UNKNOWN && telephony.ci == Snapshot.UNKNOWN) {
             val dump = RootShell.exec(
@@ -165,6 +169,25 @@ class DataHub(ctx: Context) {
             cellFromRoot = dump != null && CellIdentityParser.parse(dump, cell)
         } else {
             cellFromRoot = false
+        }
+    }
+
+    private val netPolicy = NetPolicy()
+
+    /**
+     * Donem gununu cihazin kendi veri politikasindan bir kez al.
+     *
+     * Kullaniciya elle sordurmak yerine Ayarlar'in kullandigi degerden
+     * baslamak dogrusu; sonrasinda kullanicinin secimi esas.
+     */
+    private fun adoptCycleDayOnce() {
+        if (prefs.cycleDayAdopted) return
+        RootShell.async("dumpsys netpolicy 2>/dev/null | grep -m4 'NetworkPolicy{'") { dump ->
+            if (dump == null) return@async
+            prefs.cycleDayAdopted = true
+            if (NetPolicyParser.parse(dump, netPolicy) && netPolicy.hasCycleDay) {
+                prefs.cycleDay = netPolicy.cycleDay
+            }
         }
     }
 
@@ -269,6 +292,7 @@ class DataHub(ctx: Context) {
             todayBytes = today,
             monthBytes = month,
             cycleDay = prefs.cycleDay,
+            dataLimitBytes = prefs.dataLimitMb.toLong() * 1024L * 1024L,
             batteryPct = battery.pct,
             batteryUa = battery.currentUa,
             batteryTempC = battery.tempC,

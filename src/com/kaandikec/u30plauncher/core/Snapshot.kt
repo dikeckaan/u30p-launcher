@@ -62,6 +62,9 @@ data class Snapshot(
      */
     val cycleDay: Int = 1,
 
+    /** Donem veri limiti (bayt); 0 = sinirsiz. */
+    val dataLimitBytes: Long = 0,
+
     /** Saat dakika hassasiyetinde; saniye degisimi cizim tetiklemesin. */
     val clockMinuteOfDay: Int = 0,
 

@@ -39,11 +39,12 @@ class SettingsPage(
         private const val LANGUAGE = 3
         private const val LOCK = 4
         private const val CYCLE_DAY = 5
-        private const val DETAIL = 6
-        private const val ENGINEERING = 7
-        private const val SYSTEM = 8
-        private const val DEVICE_SETTINGS = 9
-        private const val ROW_COUNT = 10
+        private const val DATA_LIMIT = 6
+        private const val DETAIL = 7
+        private const val ENGINEERING = 8
+        private const val SYSTEM = 9
+        private const val DEVICE_SETTINGS = 10
+        private const val ROW_COUNT = 11
 
         /**
          * Kilit satirinda sifre belirlemeyi acan basili tutma suresi.
@@ -159,6 +160,7 @@ class SettingsPage(
         LANGUAGE -> str(R.string.setting_language)
         LOCK -> str(R.string.setting_lock)
         CYCLE_DAY -> str(R.string.setting_cycle_day)
+        DATA_LIMIT -> str(R.string.setting_data_limit)
         DETAIL -> str(R.string.setting_detail_page)
         ENGINEERING -> str(R.string.setting_engineering_page)
         SYSTEM -> str(R.string.setting_system_page)
@@ -218,6 +220,17 @@ class SettingsPage(
                 }
             }
             CYCLE_DAY -> sb.append(prefs.cycleDay)
+            DATA_LIMIT -> {
+                val mb = prefs.dataLimitMb
+                if (mb <= 0) sb.append(str(R.string.data_unlimited))
+                else if (mb % 1024 == 0) {
+                    sb.append(mb / 1024)
+                    sb.append(" GB")
+                } else {
+                    sb.append(mb)
+                    sb.append(" MB")
+                }
+            }
             DETAIL -> sb.append(str(if (prefs.detailPage) R.string.on else R.string.off))
             ENGINEERING -> sb.append(str(if (prefs.engineeringPage) R.string.on else R.string.off))
             else -> sb.append(str(if (prefs.systemPage) R.string.on else R.string.off))
@@ -334,6 +347,12 @@ class SettingsPage(
             CYCLE_DAY -> {
                 onPickCycleDay()
                 return
+            }
+            DATA_LIMIT -> {
+                val opts = Prefs.DATA_LIMIT_OPTIONS
+                var idx = -1
+                for (i in opts.indices) if (opts[i] == prefs.dataLimitMb) idx = i
+                prefs.dataLimitMb = opts[(idx + 1) % opts.size]
             }
             DETAIL -> prefs.detailPage = !prefs.detailPage
             ENGINEERING -> prefs.engineeringPage = !prefs.engineeringPage
