@@ -231,7 +231,13 @@ class WifiPage(ctx: Context) : PageView(ctx) {
      */
     override fun onVisibilityChanged(changedView: android.view.View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
-        if (changedView !== this || visibility == VISIBLE) return
+        if (changedView !== this) return
+        if (visibility == VISIBLE) {
+            // Sayfaya her donuste degerler diskten tazelensin: kimlik bu arada
+            // degismis olabilir.
+            if (snapshot.rootAvailable) readConfig()
+            return
+        }
         if (view != VIEW_MAIN || applyState != APPLY_IDLE) {
             view = VIEW_MAIN
             applyState = APPLY_IDLE
@@ -248,12 +254,7 @@ class WifiPage(ctx: Context) : PageView(ctx) {
             invalidate()
         }
         if (!snapshot.rootAvailable) return
-        if (!loaded) {
-            RootShell.async("cat $CONF 2>/dev/null") { xml ->
-                if (xml != null && SoftApParser.parse(xml, ap)) loaded = true
-                invalidate()
-            }
-        }
+        readConfig()
         refreshClients(force = true)
         loadFactory()
         refreshNames(force = true)
@@ -442,6 +443,22 @@ class WifiPage(ctx: Context) : PageView(ctx) {
             c, str(R.string.wifi_bar_reset), BAR_LABEL_Y,
             if (factoryReady) barLabel else barLabelDim, cx
         )
+    }
+
+    /**
+     * SSID ve parolayi diskten tazeler.
+     *
+     * Once yalnizca BIR KEZ okunuyordu (`if (!loaded)`). Kimlik disaridan
+     * degisince — stok arayuzden, ya da bizim kendi "yeni/sifirla" akisimizla —
+     * sayfa eski degerleri gostermeye devam ediyordu; kullanici ekrandaki
+     * parolayi misafirine verse ise yaramazdi. Okuma tek bir `cat`, sayfa da
+     * seyrek aciliyor; her acilista okumak bedava sayilir.
+     */
+    private fun readConfig() {
+        RootShell.async("cat $CONF 2>/dev/null") { xml ->
+            if (xml != null && SoftApParser.parse(xml, ap)) loaded = true
+            invalidate()
+        }
     }
 
     /** Serit hedefi; -1 = serit disi. */
@@ -702,6 +719,8 @@ class WifiPage(ctx: Context) : PageView(ctx) {
                 out.contains(TOOL_RESTARTED) -> APPLY_LIVE
                 else -> APPLY_OK
             }
+            // Yazma tuttuysa ana sayfa artik ESKI degerleri gostermemeli.
+            if (applyState != APPLY_FAIL) readConfig()
             invalidate()
         }
     }
